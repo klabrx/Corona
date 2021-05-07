@@ -285,3 +285,15 @@ limitslist
 
 Schwellen$ok_seit <- sapply(Schwellen$Grenzwert, ok)
 
+
+
+
+
+library(flexdashboard)
+
+gauge(99.3, min = 0, max = 150,  gaugeSectors(
+  success = c(0, 50), warning = c(50, 100), danger = c(100, 999)
+))
+
+round(tail(timeline,1)$Inzidenz,1)
+
