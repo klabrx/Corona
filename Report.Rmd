@@ -83,11 +83,12 @@ ok <- function(Grenzwert) {
 }
 
 source.file.name <- "Z:/260 Rechtsamt/Sonstiges/Dashboardzahlen, regionaler Vergleich.xlsx"
-if (file.exists(source.file.name)) Dashboard <- as.data.frame(read_excel(source.file.name)) %>%
+Dashboard <- if (file.exists(source.file.name)) as.data.frame(read_excel(source.file.name)) %>%
   tail(100) %>%
-  select(Meldedatum=Tag, Inzidenz=4)
+  select(Meldedatum=Tag, Inzidenz=4) else tail(timeline,100)[,1] %>% mutate(Inzidenz=100000)
 
-checkdash <- function(Grenzwert) {  
+checkdash <- function(Grenzwert) {
+  
   as.numeric((max(Dashboard$Meldedatum) - max(as.data.frame(Dashboard[which(Dashboard$Inzidenz >= Grenzwert),])$Meldedatum)))
 }
 
@@ -196,12 +197,12 @@ Erläuterung der Zahlenangaben:\
 **I.1d** ("1-Tages-Inzidenz"): Höhe des Beitrags, den dieser Tag zur Wocheninzidenz leistet\
 **lSum**: Aggregierte Summe der Fallzahlen über den Verlauf der beobachteten Woche. Der erste Tag entspricht diesem einzelnen Tag (und fällt als nächstes aus der Inzidenz), der letzte Tag entspricht der Wochen-Inzidenz.
 
-### Zeitverlauf der Inzidenzen
-```{r, InzPlot, eval=TRUE, echo=FALSE}
-InzPlot <- timeline %>%
+### Inzidenzverlauf
+```{r, Inzidenzplot, eval=TRUE, echo=FALSE}
+InzPlot <- timeline %>% 
   ggplot(aes(x=Meldedatum, y=Inzidenz)) +
-    geom_col() + 
-    geom_smooth(method = "gam")
+  geom_col() +
+  geom_smooth(method = "gam")
 InzPlot
 ```
 
@@ -264,10 +265,6 @@ knitr::kable(Altersstruktur[2:4,], align = c("c","c","c"))
 
 
 
-# Altersstruktur <- Altersstruktur[2:3,]
-
-# print(Altersstruktur, row.names = TRUE, col.names = FALSE)
-
 ```
 
 
@@ -280,7 +277,7 @@ BITTE BEACHTEN: Die Anzahl der Tage, seit denen ein Schwellenwert unterschritten
   * bezogen auf die täglichen Veröffentlichungen im RKI-Dashboard (ohne Berücksichtigung nachträglicher Änderungen), oder
   * bezogen auf die für den zurückliegenden 7-Tage-Zeitraum in der RKI-Datenbank enthaltenen Inzidenzwerte (mit Berücksichtigung nachträglicher Änderungen)
 
-Rechtlich relevant ist die Berechnung **OHNE** Änderungen, d.h. hier die Spalte "Tage lt. Dashboard".
+Rechtlich relevant ist die Berechnung **OHNE** Änderungen, d.h. hier die Spalte "Tage lt. Dashboard". 
 
 ```{r, Schwellen, eval=TRUE, echo=FALSE}
 kable(Schwellen, col.names = c("Grenzwert","max. Fallzahl", "Abweichung", "Tage lt. Datenbank", "Tage lt. Dashboard"), align="ccccc", format = "html", table.attr = "style='width:100%;'")
