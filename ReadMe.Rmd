@@ -1,0 +1,44 @@
+---
+title: "Corona-Tagesreport"
+output: pdf_document
+---
+
+## EINLEITUNG 
+
+Dieses Skript ruft über eine API amtliche Fallzahlen vom Robert-Koch-Institut ab, berechnet daraus die 7-Tage-Inzidenz und erstellt einen einfachen Report. Vorteil und im Gegensatz zur üblichen Dashboard-Abfrage ist, dass auch die regelmäßig vorkommenden nachträglichen Veränderungen der Fallzahlen (Nachmeldungen und Stornierungen) mit abgebildet und sichtbar gemacht werden. Dies ermöglicht es insbesondere, einen vorsichtigen Ausblick in die Zukunft zu wagen, da ja (im Gegensatz zum Dashboard) ersichtlich ist, wie viele Fälle in den nächsten Tagen "abschmelzen" und aus der 7-Tage-Inzidenz verschwinden werden.
+
+## Inhalt, Verzeichnisstruktur
+
+Das Skript ist als R-Project angelegt und sollte mit RStudio auch als solches behandelt werden. Selbstverständlich können alle Pfade angepasst werden, man sollte dafür aber selber wissen, was man tut.
+
+## Projektverzeichnis, WorkingDirectory
+Das Stammverzeichnis enthält:
+* Readme.rmd und Readme.pdf (diese Beschreibung)
+* RKI.API.R (das eigentliche R-Skript)
+* Report.Rmd (der R-Markdown-Report, der sich mit Daten füllt)
+* coRona.Rproj (das R-Project-file)
+* sowie folgende Unterverzeichnisse:
+    + data: enthält (vorerst) nur eine Liste mit AGS, Namen und Einwohnerzahl aller 476 Kreise
+    + html: füllt sich Tag für Tag mit dem frisch gerenderen Report
+        - Unterverzeichnisse für die verschiedenen Kreise (09262 für Stadt Passau)  
+    + plots: ebenso für die erzeugten täglichen Plots
+    + xlsx: ebenso für die erzeugten Excel-Dateien
+
+## Workflow
+Der eigentliche Programmaufruf ist in "Report_Erstellen.R" angelegt. Insbesondere wird hier der Dateiname und -pfad für die Erzeugung des täglich neuen *.-html-Reports erzeugt.
+
+Sämtliche Codierung, Hintergrunddatenlieferung, Berechnung, etc. findet dann in der Datei "Report.Rmd" statt. Eine Parametriesierung auf die örtlichen Gegebenheiten ist im YAML-Header möglich.
+
+### WARNUNG:
+Es findet keinerlei Fehlerbehandlung statt. Wenn etwas schiefgeht, dann normalerweise deshalb, weil bei irgendwelchen eigenen Anpassungen (die ja auch erwünscht sind!) die R-Syntax zerschossen wurde ... dafür recht die sprichwörtliche vergessene Klammer.
+
+## Ausgaben
+Die erzeugten Dateien sind normalerweise einigermaßen selbsterklärend. Verbesserungsvorschläge für Erweiterungen, schönere Grafiken, Automatisierungen, was auch immer, sind ausdrücklich erwünscht!
+
+## Rückfragen, Kontakt
+Für Rückfragen stehe ich im Rahmen der Zeit, die mir Job und Privatleben dafür übriglassen, gerne zur Verfügung.  
+
+Klaus Brückner  
+tel +49 851 396-499  
+mail klaus-brueckner@passau.de  
+
