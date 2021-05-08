@@ -90,7 +90,7 @@ Schwellen$ok_50 <- as.numeric((max(timeline$Meldedatum) - max(as.data.frame(time
 Schwellen$ok_100 <- as.numeric((max(timeline$Meldedatum) - max(as.data.frame(timeline[which(Inzidenz >= 100),])$Meldedatum)))
 Schwellen$ok_165 <- as.numeric((max(timeline$Meldedatum) - max(as.data.frame(timeline[which(Inzidenz >= 165),])$Meldedatum)))
 ok
-=======
+
   estimate <- timeline %>%
   mutate(WD = weekdays(Meldedatum)) %>%
   mutate(DoW = wday(Meldedatum)) %>%
@@ -177,7 +177,6 @@ as.numeric(max(timeline$Meldedatum) - max(as.data.frame(timeline[which(Inzidenz 
 
 
 
-=======
   estimate <- timeline %>%
   mutate(WD = weekdays(Meldedatum)) %>%
   mutate(DoW = wday(Meldedatum)) %>%
@@ -305,27 +304,50 @@ url <- "https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Daten/Fallz
 
 
 dash.rki.data <- rio::import(file = url,which = 7)[-(1:4),] %>%
-  rename(Kreis=2) %>%
-  filter(Kreis=="SK Passau") %>%
+  rename(Kreis=2, AGS=3) %>%
+  filter(Kreis %in% c("SK Passau", "LK Passau")) %>%
   t() %>%
   as.data.frame 
 # dash.rki.stand <- row.names(dash.rki.data)[1]
+names(dash.rki.data) <- dash.rki.data[2,]
+
+
 dash.rki.stand <- as.Date(parse_date_time(substring(row.names(dash.rki.data)[1], 8, 17), order="dmy"))
 
-dash.rki.data <- as.data.frame(dash.rki.data[-(1:3),]) %>% rename(Dashboard.Inzidenz=1)
-dash.rki.data$Dashboard.Inzidenz <- round(as.numeric(dash.rki.data$Dashboard.Inzidenz),1)
+
+dash.rki.data <- as.data.frame(dash.rki.data[-(1:3),]) %>% # rename(Dashboard.Inzidenz=1)
+# dash.rki.data$Dashboard.Inzidenz <- round(as.numeric(dash.rki.data$Dashboard.Inzidenz),1)
 dash.rki.data$Datum <- dash.rki.stand - max(row(dash.rki.data)) + row(dash.rki.data)
-
-
-as.numeric(dash.rki.stand - max(dash.rki.data[which(dash.rki.data$Dashboard.Inzidenz >= 100),]$Datum))
-
-dash.rki.stand
 dash.rki.data %>% tail()
 
+# dashdat erzeugen
+url <- "https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Daten/Fallzahlen_Kum_Tab.xlsx?__blob=publicationFile"
+dashdat <- rio::import(file = url,which = 7)[-(1:4),] %>%
+  rename(Kreis=2) %>%
+  filter(Kreis %in% c("SK Passau",
+                      "LK Passau",
+                      "LK Freyung-Grafenau",
+                      "LK Rottal-Inn",
+                      "LK Deggendorf")) %>%
+  t() %>%
+  as.data.frame()
+dashdat.stand <- as.Date(parse_date_time(substring(row.names(dashdat)[1], 8, 17), order="dmy"))
+
+names(dashdat) <- c("SKPassau",
+                    "LKPassau",
+                    "LKFreyung-Grafenau",
+                    "LKRottal-Inn",
+                    "LKDeggendorf")
+dashdat <- dashdat[-(1:3),] 
+dashdat$Datum <- dashdat.stand - max(row(dashdat)) + row(dashdat)
+dashdat$Meldedatum <- dashdat$Datum-1
+dashdat[1:5]  <- lapply(dashdat[1:5], as.numeric)
 
 
 
+head(dashdat)
+tail(dashdat)
+dashdat.stand
 
-library(readxl)
-Fallzahlen_Kum_Tab <- read_excel(url, sheet = "LK_7-Tage-Inzidenz", skip = 2) %>% t()
-View(Fallzahlen_Kum_Tab)
+
+
