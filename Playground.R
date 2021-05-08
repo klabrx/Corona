@@ -90,7 +90,7 @@ Schwellen$ok_50 <- as.numeric((max(timeline$Meldedatum) - max(as.data.frame(time
 Schwellen$ok_100 <- as.numeric((max(timeline$Meldedatum) - max(as.data.frame(timeline[which(Inzidenz >= 100),])$Meldedatum)))
 Schwellen$ok_165 <- as.numeric((max(timeline$Meldedatum) - max(as.data.frame(timeline[which(Inzidenz >= 165),])$Meldedatum)))
 ok
-=======
+
   estimate <- timeline %>%
   mutate(WD = weekdays(Meldedatum)) %>%
   mutate(DoW = wday(Meldedatum)) %>%
@@ -177,7 +177,6 @@ as.numeric(max(timeline$Meldedatum) - max(as.data.frame(timeline[which(Inzidenz 
 
 
 
-=======
   estimate <- timeline %>%
   mutate(WD = weekdays(Meldedatum)) %>%
   mutate(DoW = wday(Meldedatum)) %>%
@@ -329,3 +328,12 @@ dash.rki.data %>% tail()
 library(readxl)
 Fallzahlen_Kum_Tab <- read_excel(url, sheet = "LK_7-Tage-Inzidenz", skip = 2) %>% t()
 View(Fallzahlen_Kum_Tab)
+
+
+
+
+
+
+valueBox(42, caption = "Errors", icon="fa-thumbs-down")
+valueBox(107, caption = "Trials", icon="fa-tag")
+valueBox(247, caption = "Connections", icon="fa-random")
