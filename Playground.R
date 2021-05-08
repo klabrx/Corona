@@ -297,3 +297,24 @@ gauge(99.3, min = 0, max = 150,  gaugeSectors(
 
 round(tail(timeline,1)$Inzidenz,1)
 
+
+
+
+library(rio)
+url <- "https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Daten/Fallzahlen_Kum_Tab.xlsx?__blob=publicationFile"
+
+
+tmp <- rio::import(file = url,which = 7)[-(1:4),] %>%
+  rename(Kreis=2) %>%
+  filter(Kreis=="SK Passau") %>%
+  t() %>%
+  as.data.frame 
+tmp
+
+tmp$...2
+
+
+
+library(readxl)
+Fallzahlen_Kum_Tab <- read_excel(url, sheet = "LK_7-Tage-Inzidenz", skip = 2) %>% t()
+View(Fallzahlen_Kum_Tab)

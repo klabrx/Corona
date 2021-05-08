@@ -168,14 +168,6 @@ weekdays <- timeline %>%
 
 ## Infos zum Bericht{.tabset}
 
-```{r, eval=TRUE, echo=FALSE}
-gauge(99.3, min = 0, max = 150,  gaugeSectors(
-  success = c(0, 50), warning = c(50, 100), danger = c(100, 999)
-))
-```
-
-
-
 ### Abrufzeitpunkt
 
 | Amtliche RKI-Corona-Daten für Land-/Stadtkreis |               Abrufzeitpunkt               |Aktuelle Inzidenz|
