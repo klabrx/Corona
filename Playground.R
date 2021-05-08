@@ -351,3 +351,15 @@ dashdat.stand
 
 
 
+library(readxl)
+Fallzahlen_Kum_Tab <- read_excel(url, sheet = "LK_7-Tage-Inzidenz", skip = 2) %>% t()
+View(Fallzahlen_Kum_Tab)
+
+
+
+
+
+
+valueBox(42, caption = "Errors", icon="fa-thumbs-down")
+valueBox(107, caption = "Trials", icon="fa-tag")
+valueBox(247, caption = "Connections", icon="fa-random")
