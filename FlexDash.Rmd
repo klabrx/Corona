@@ -227,7 +227,7 @@ knitr::kable(delta.out)
 
 "Kohorteninzidenz" steht für die getrennt nach Altersgruppen ("Kohorten") ausgewiesene 7-Tage-Inzidenz. Diese wird von RKI bislang nicht veröffentlicht, da hierfür die lokale Altersstruktur bekannt sein muss.
 
-NA = "Not Available", d.h. kein Wert vorhanden
+NA = "Not Available", d.h. kein Fall in dieser Altersklasse gemeldet
 
 ```{r, Altersstruktur, echo=FALSE}
 Altersstruktur <- cases %>%

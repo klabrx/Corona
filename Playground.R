@@ -304,14 +304,25 @@ library(rio)
 url <- "https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Daten/Fallzahlen_Kum_Tab.xlsx?__blob=publicationFile"
 
 
-tmp <- rio::import(file = url,which = 7)[-(1:4),] %>%
+dash.rki.data <- rio::import(file = url,which = 7)[-(1:4),] %>%
   rename(Kreis=2) %>%
   filter(Kreis=="SK Passau") %>%
   t() %>%
   as.data.frame 
-tmp
+# dash.rki.stand <- row.names(dash.rki.data)[1]
+dash.rki.stand <- as.Date(parse_date_time(substring(row.names(dash.rki.data)[1], 8, 17), order="dmy"))
 
-tmp$...2
+dash.rki.data <- as.data.frame(dash.rki.data[-(1:3),]) %>% rename(Dashboard.Inzidenz=1)
+dash.rki.data$Dashboard.Inzidenz <- round(as.numeric(dash.rki.data$Dashboard.Inzidenz),1)
+dash.rki.data$Datum <- dash.rki.stand - max(row(dash.rki.data)) + row(dash.rki.data)
+
+
+as.numeric(dash.rki.stand - max(dash.rki.data[which(dash.rki.data$Dashboard.Inzidenz >= 100),]$Datum))
+
+dash.rki.stand
+dash.rki.data %>% tail()
+
+
 
 
 
