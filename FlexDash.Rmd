@@ -159,12 +159,22 @@ weekdays <- timeline %>%
   as.data.frame() %>%
   select(Wochentag = WD, Fallzahl_Durchschnitt, DoW)
 ```
+
+
 Diagramme zur aktuellen Inzidenz
-================================
+==================================
 
 
 Column {data-width=650}
 -----------------------------------------------------------------------
+### Inzidenz am `r format(tail(timeline,1)$Meldedatum, "%a, %d.%m.%Y")`
+
+```{r}
+gauge(round(tail(timeline,1)$Inzidenz,1), min = 0, max = 150,  gaugeSectors(
+  success = c(0, 50), warning = c(50, 100), danger = c(100, 999)
+))
+```
+
 
 ### 7-Tage-Inzidenz: Übersicht
 
@@ -175,14 +185,7 @@ weekly.plot
 Column {data-width=350}
 -----------------------------------------------------------------------
 
-### Inzidenz am `r format(tail(timeline,1)$Meldedatum, "%a, %d.%m.%Y")`
 
-
-```{r}
-gauge(round(tail(timeline,1)$Inzidenz,1), min = 0, max = 150,  gaugeSectors(
-  success = c(0, 50), warning = c(50, 100), danger = c(100, 999)
-))
-```
 
 ### Entwicklung der Inzidenzen
 ```{r, Inzidenzplot, eval=TRUE, echo=FALSE}
@@ -193,6 +196,80 @@ InzPlot <- timeline %>%
 InzPlot
 
 ```
+
+### Fälle pro Tag
+```{r, CasePlotAll, echo=FALSE}
+CasePlot <- cases %>%
+  filter(NeuerFall %in% c(0,1)) %>%
+  filter(Meldedatum > "2020-01-01") %>%
+  group_by(Meldedatum) %>%
+  summarise(Fälle = sum(AnzahlFall)) %>%
+  # pivot_wider(names_from = Meldedatum, values_from = AnzahlFall) %>%
+  as.data.frame() %>%
+  ggplot(aes(x = Meldedatum, y = Fälle)) +
+    geom_col() + 
+    geom_smooth(method = "gam")
+CasePlot
+```
+
+# Strukturdaten {data-orientation=rows}
+
+## Details zu Inzidenz und Altersstruktur
+
+### Heute neu
+
+```{r, Delta, eval=TRUE, echo=FALSE}
+# print(delta.out, row.names = FALSE)
+knitr::kable(delta.out)
+```
+
+### Altersstruktur
+
+"Kohorteninzidenz" steht für die getrennt nach Altersgruppen ("Kohorten") ausgewiesene 7-Tage-Inzidenz. Diese wird von RKI bislang nicht veröffentlicht, da hierfür die lokale Altersstruktur bekannt sein muss.
+
+NA = "Not Available", d.h. kein Wert vorhanden
+
+```{r, Altersstruktur, echo=FALSE}
+Altersstruktur <- cases %>%
+  filter(NeuerFall %in% c(0,1)) %>%
+  filter(Meldedatum > Sys.Date()-8) %>%
+  group_by(Altersklasse=Altersgruppe) %>%
+  summarise(Fälle = sum(AnzahlFall)) %>%
+  merge(Altersklassen, all.y=TRUE) %>%
+  mutate(Kohorteninzidenz = round(Fälle/EWO*100000,1)) %>%
+  # select(-3)  %>%
+  t() %>%
+  as.data.frame()
+
+
+names(Altersstruktur) <- Altersstruktur[1,] 
+knitr::kable(Altersstruktur[2:4,], align = c("c","c","c"))
+
+
+
+```
+
+
+Row
+-----------------------------------------------------------------------
+
+### Grenzwerte
+
+"max. Fallzahl" steht für die höchste Fallzahl, die den jeweiligen Grenzwert noch einhält. "Abweichung" beschreibt, wie weit man über oder unter dieser Fallzahl liegt ("0" ist somit die Punktlandung). 
+
+BITTE BEACHTEN: Die Anzahl der Tage, seit denen ein Schwellenwert unterschritten wird, kann auf zweierlei Wegen bestimmt werden:
+
+  * bezogen auf die täglichen Veröffentlichungen im RKI-Dashboard (ohne Berücksichtigung nachträglicher Änderungen), oder
+  * bezogen auf die für den zurückliegenden 7-Tage-Zeitraum in der RKI-Datenbank enthaltenen Inzidenzwerte (mit Berücksichtigung nachträglicher Änderungen)
+
+Rechtlich relevant ist die Berechnung **OHNE** Änderungen, d.h. hier die Spalte "Tage lt. Dashboard". 
+
+```{r, Schwellen, eval=TRUE, echo=FALSE}
+kable(Schwellen, col.names = c("Grenzwert","max. Fallzahl", "Abweichung", "Tage lt. Datenbank", "Tage lt. Dashboard"), align="ccccc", format = "html", table.attr = "style='width:100%;'")
+# print(Schwellen, row.names = FALSE)
+```
+
+
 
 Ausblick auf die nächsten 7 Tage
 ================================
@@ -247,7 +324,7 @@ prog.plot <- prognosis %>%
                                               "DT+5",
                                               "DT+6",
                                               "DT+7")) +
-  labs(title=paste0("Versuchte INZIDENZ-Vorausschau über 7 Tage ab dem Dashboard-Tag (DT)")) +
+  labs(title=paste0("Absehbare INZIDENZ-Prognose ")) +
   scale_color_discrete(name ="Legende", labels = c("Var0","Var1","Var2")) +
   ylab("7-Tage-Inzidenz") + ylim(-10, (floor(max(prognosis$Inz2)/25)+2)*25) +
   xlab("Veröffentlichungsdatum (1 Tag nach Meldedatum)") 
@@ -278,7 +355,7 @@ prog.case.plot <- prognosis %>%
                                               "DT+5",
                                               "DT+6",
                                               "DT+7")) +
-  labs(title=paste0("Versuchte FALLZAHLEN-Vorausschau über 7 Tage ab dem Dashboard-Tag (DT)")) +
+  labs(title=paste0("Absehbare FALLZAHLEN-Prognose")) +
   scale_color_discrete(name ="Legende", labels = c("Var0","Var1","Var2")) +
   ylab("Fallzahlen") + ylim(-10, (floor(max(prognosis$sum2)/25)+2)*25) +
   xlab("Veröffentlichungsdatum (1 Tag nach Meldedatum)") +
@@ -287,3 +364,40 @@ prog.case.plot <- prognosis %>%
 prog.case.plot
 ```
 
+## Datenbasis für die Prognosen{.tabset}
+
+Fallzahlen gehen je nach Wochentag in unterschiedlicher Höhe ein. Basierend auf den letzten `r backweek` Wochen bzw. `r backweek*7` Tagen ergibt sich folgende Verteilung:
+
+### Fallzahlendurchschnitt je Wochentag
+
+```{r, Weekdays, eval=TRUE, echo=FALSE}
+weekdays %>%
+  mutate(Mittelwert = Fallzahl_Durchschnitt) %>%
+  arrange(DoW) %>%
+  select(1,4) %>%
+  kable(format = "html", table.attr = "style='width:80%;'")
+  # print(row.names = FALSE)
+```
+
+### Fallzahlenrückblick über `r backweek` Wochen:
+
+```{r, Timeline, eval=TRUE, echo=FALSE}
+timeline %>%
+  mutate(Wochentag=weekdays(Meldedatum)) %>%
+  mutate(Relevant = c("Nicht mehr", "Ja")[((today() - Meldedatum <= 7)) + 1]) %>%
+  mutate(Datum=format(Meldedatum, "%d.%m.%Y")) %>%
+  tail(backweek*7) %>%
+  as.data.frame() %>%
+  select(Wochentag, Datum, Fälle=AnzahlFall, Relevant) %>%
+  kable(align="llll", format = "html", table.attr = "style='width:80%;'")
+  # print(row.names = FALSE)
+```
+
+```{r, Weekdays0, eval=TRUE, echo=FALSE}
+weekdays %>%
+  mutate(Mittelwert = Fallzahl_Durchschnitt) %>%
+  arrange(DoW) %>%
+  select(1,4) %>%
+  kable(format = "html", table.attr = "style='width:80%;'")
+  # print(row.names = FALSE)
+```
