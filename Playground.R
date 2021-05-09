@@ -387,6 +387,7 @@ dashdat.plot <- dashdat.pivot %>% filter(Kreis %in% c("SK Passau",
 scale_size(range = c(0.5, 1), guide="none")
 dashdat.plot
 
+BLdat <- read_excel(destfile, sheet=5, skip=2, col_names = TRUE)   %>% data.frame()
 
 
 
