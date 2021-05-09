@@ -111,7 +111,7 @@ weekly.plot <- weekly %>%
   ggplot(aes(x = Meldedatum, y = Inzidenz)) +
   geom_bar(stat = "identity", width = 1, fill = "grey") +
   geom_bar(aes(y = I.1d, x = Meldedatum), stat = "identity") +
-  geom_text(aes(label = paste0("", round(Inzidenz,1))), position = position_dodge(width = 0.9), vjust=1.5, size=5) +
+  geom_text(aes(label = paste0("", round(Inzidenz,1))), position = position_dodge(width = 0.9), vjust=1.5, size=4) +
   # geom_text(aes(label=paste0("N: ", round(AnzahlFall,1))), position=position_dodge(width=0.9), vjust=4.5) +
   geom_text(aes(y=I.1d, label=paste0(round(AnzahlFall,1))), position=position_dodge(width=0.9), vjust=-1.5) +
   # geom_text(aes(label=paste0("lSum: ",  lfd.sum)), position=position_dodge(width=0.9), vjust=7.5) +
@@ -421,7 +421,11 @@ Column {data-width=650}
 
 Grenzwerte müssen "dauerhaft" unter- bzw. überschritten sein, bevor die damit verbundenen Regelungen greifen. Das gilt im allgemeinen ab dem dritten Tag der Über-/Unterschreitung als der Fall. 
 
-Bei den 7-Tage-Inzidenzen für frühere Tage muss berücksichtigt werden, dass es sich hier um die jeweils an dem angegebenen Tag berichteten Werte handelt, die **nicht** durch an Folgetagen nachübermittelte Fälle aktualisiert werden (für den Berichtstag "eingefrorene" Werte).
+Bei den 7-Tage-Inzidenzen für frühere Tage muss berücksichtigt werden, dass es sich hier um die jeweils an dem angegebenen Tag berichteten Werte handelt, die **nicht** durch an Folgetagen nachübermittelte Fälle aktualisiert werden (für den Berichtstag "eingefrorene" Werte). RKI stellt diese eingefrorenen Werte einschließlich einer mehrmonatigen Rückschau täglich zur Verfügung.
+
+Der hier verwendete Datenstand ist `r dash.rki.stand`.
+
+
 
 Column {data-width=350}
 -----------------------------------------------------------------------
