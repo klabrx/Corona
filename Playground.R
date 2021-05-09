@@ -321,45 +321,74 @@ dash.rki.data$Datum <- dash.rki.stand - max(row(dash.rki.data)) + row(dash.rki.d
 dash.rki.data %>% tail()
 
 # dashdat erzeugen
+# url <- "https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Daten/Fallzahlen_Kum_Tab.xlsx?__blob=publicationFile"
+# dashdat <- rio::import(file = url,which = 7)[-(1:4),] %>%
+#   as.data.frame() %>%
+#   rename(Kreis=2) %>%
+#   filter(Kreis %in% c("SK Passau")) %>%
+#   t() %>%
+#   as.data.frame()
+# dashdat.stand <- as.Date(parse_date_time(substring(row.names(dashdat)[1], 8, 17), order="dmy"))
+# 
+# 
+# dashdat <- dashdat[-(1:3),] 
+# dashdat$Datum <- dashdat.stand - max(row(dashdat)) + row(dashdat)
+# dashdat$Meldedatum <- dashdat$Datum-1
+# dashdat  <- as.data.frame(as.numeric(dashdat))
+# names(dashdat) <- c("Inzidenz.Dashboard")
+# dashdat$Meldedatum <- dashdat$Datum-1
+# 
+# 
+# 
+# 
+# head(dashdat)
+# tail(dashdat)
+# dashdat.stand
+library(readxl)
+library(anytime)
 url <- "https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Daten/Fallzahlen_Kum_Tab.xlsx?__blob=publicationFile"
-dashdat <- rio::import(file = url,which = 7)[-(1:4),] %>%
-  rename(Kreis=2) %>%
-  filter(Kreis %in% c("SK Passau",
-                      "LK Passau",
-                      "LK Freyung-Grafenau",
-                      "LK Rottal-Inn",
-                      "LK Deggendorf")) %>%
-  t() %>%
-  as.data.frame()
-dashdat.stand <- as.Date(parse_date_time(substring(row.names(dashdat)[1], 8, 17), order="dmy"))
+destfile <- "Fallzahlen_Kum_Tab.xlsx"
+curl::curl_download(url, destfile)
+dashdat <- read_excel(destfile, sheet=7, range="A2", col_names = FALSE) 
+dashdat.stand <- as.Date(parse_date_time(substring(dashdat[1,1], 8, 17), order="dmy"))
+# names(dashdat[4]) <- c("Datum")
 
-names(dashdat) <- c("SKPassau",
-                    "LKPassau",
-                    "LKFreyung-Grafenau",
-                    "LKRottal-Inn",
-                    "LKDeggendorf")
-dashdat <- dashdat[-(1:3),] 
-dashdat$Datum <- dashdat.stand - max(row(dashdat)) + row(dashdat)
-dashdat$Meldedatum <- dashdat$Datum-1
-dashdat[1:5]  <- lapply(dashdat[1:5], as.numeric)
-
-
-
-head(dashdat)
-tail(dashdat)
 dashdat.stand
 
+dashdat <- read_excel(destfile, sheet=7, skip=4, col_names = FALSE) %>% select(-1) %>% t()  %>% data.frame()
+as.excel.date=function(x) as.Date(x,origin='1900-01-01')-2
+
+dashdat[which(nchar(dashdat$X1) == 10),]$X1 <- as.Date(parse_date_time(dashdat[which(nchar(dashdat$X1) == 10),]$X1, c('d.m.y')))
+dashdat[which(nchar(dashdat$X1) == 11),]$X1 <- dashdat[which(nchar(dashdat$X1) == 11),]$X1 %>% as.numeric() %>% as.excel.date()
+colnames(dashdat) <- paste0(str_pad(dashdat[2,],5,side=c("left"), pad="0"),"",dashdat[1,])
+
+dashdat <- dashdat[-(1:2),]
+
+dashdat$Datum <- as.Date(as.numeric(dashdat$`0LKNRLK`))
+dashdat.pivot <- dashdat %>%
+  select(-1) %>%
+  pivot_longer(!Datum, 
+               names_to = "Kreis",
+               values_to = "Inzidenz") %>% 
+  mutate(Inzidenz = round(as.numeric(Inzidenz),1)) %>%
+  separate(Kreis,c("AGS","Kreis"), sep=5)
+
+dashdat.pivot$mysize <- rep(0.5, nrow(dashdat.pivot))
+dashdat.pivot$mysize[dashdat.pivot$AGS=="09262"] <- 1
+
+dashdat.plot <- dashdat.pivot %>% filter(Kreis %in% c("SK Passau",
+                                                      "LK Passau",
+                                                      "SK Landshut",
+                                                      "LK Freyung-Grafenau",
+                                                      "LK Rottal-Inn",
+                                                      "LK Deggendorf")) %>%
+  ggplot(aes(x = Datum, y = Inzidenz, group=Kreis, color=Kreis, size=mysize)) + 
+  geom_line() +
+scale_size(range = c(0.5, 1), guide="none")
+dashdat.plot
+
+BLdat <- read_excel(destfile, sheet=5, skip=2, col_names = TRUE)   %>% data.frame()
 
 
-library(readxl)
-Fallzahlen_Kum_Tab <- read_excel(url, sheet = "LK_7-Tage-Inzidenz", skip = 2) %>% t()
-View(Fallzahlen_Kum_Tab)
 
 
-
-
-
-
-valueBox(42, caption = "Errors", icon="fa-thumbs-down")
-valueBox(107, caption = "Trials", icon="fa-tag")
-valueBox(247, caption = "Connections", icon="fa-random")
