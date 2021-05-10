@@ -7,7 +7,7 @@ rmarkdown::render(
 rmarkdown::render(
   input = "FlexDash.rmd",
   envir = .GlobalEnv,
-  output_file = paste0("./html/Flexdashboard-", Sys.Date() - 1, ".html"),
+  output_file = paste0("./html/Flexdashboard-", Sys.Date(), ".html"),
   output_dir = paste0("html/", "09262")
 )
 
