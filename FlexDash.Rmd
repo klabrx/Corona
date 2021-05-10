@@ -31,6 +31,12 @@ library(readxl)
 library(rio)
 library(stringr)
 
+# get parameters from YAML header
+
+
+```
+
+```{r LoadData,eval=TRUE, echo=FALSE}
 source("./functions/functions.R")
 EWO <- as.numeric(params$EWO)
 backweek <- params$backweek
