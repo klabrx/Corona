@@ -32,19 +32,87 @@ library(rio)
 library(stringr)
 
 # get parameters from YAML header
-
-
-```
-
-```{r LoadData,eval=TRUE, echo=FALSE}
-source("./functions/functions.R")
 EWO <- as.numeric(params$EWO)
 backweek <- params$backweek
 AG <- params$IDKreis
-Altersklassen <- data.frame(Altersklasse = params$Altersklasse, EWO = params$EWOAK, stringsAsFactors = FALSE)
+Altersklassen <- data.frame(Altersklasse     = params$Altersklasse,
+                            EWO              = params$EWOAK,
+                            stringsAsFactors = FALSE)
+```
 
+```{r functions, eval=TRUE, echo=FALSE}
+
+# Rekursive Funktion zum Abruf von Corona-Zahlen direkt über die RKI-API:
+# Parameter: 
+#   Gemeindeschlüssel (z.B. 09262 für Kreisfreie Stadt Passau)
+#   Meldedatum von-bis (MD_von, MD_bis)
+
+RKI.cases <- function(AGS, MD_von, MD_bis)
+{service.url <- paste0("https://services7.arcgis.com/",
+                        "mOBPykOjAyBO2ZKk/",
+                        "arcgis/rest/services/RKI_COVID19/FeatureServer/0/",
+                        "query?where=")
+  parameters <- paste(sep="&",
+                      paste(sep=" AND ",
+                            paste("IdLandkreis = ",AGS),
+                            paste("Meldedatum >= TIMESTAMP '",MD_von," 00:00:00'"),
+                            paste("Meldedatum <= TIMESTAMP '",MD_bis," 00:00:00'"),
+                            "NeuerFall in (-1,0,1)"
+                      ),
+                      # "outFields=AnzahlFall,Meldedatum",
+                      "outFields=AnzahlFall,Meldedatum,Altersgruppe,Geschlecht,NeuerFall,AnzahlTodesfall,NeuerTodesfall",
+                      "orderByFieldsForStatistics=Meldedatum",
+                      "groupByFieldsForStatistics=Meldedatum",
+                      "f=pjson"
+  )
+  
+  # Zusammenfügen von Link und Parametern, URL-taugliche Codierung
+  GET.request <- URLencode(paste0(service.url, parameters))
+  
+  # Hier erfolgt die eigentliche Abfrage
+  RKI_data <- fromJSON(GET.request)
+  
+  # Umwandlung JSON-Format in Dataframe
+  cases <- as.data.frame(RKI_data$features$attributes)
+  # Umwandlung JSON-Datumsformat in humanlesbar
+  cases$Meldedatum <- as.Date(cases$Meldedatum/86400000,origin="1970-01-01")
+  
+  
+  # Rekursion (Minimiert die Anzahl der API-Abrufe *UND* ist datumsunabhängig):
+  # WENN der Abruf weniger als 5000 Zeilen lang ist (Limit der API),
+  # DANN ist die Funktion durch, 'cases' wird zurückgegeben.
+  # SONST: Der letzte evtl. unvollständige Meldetag ('MD') wird entfernt,
+  #        ein erneuter Abruf, diesmal beginnend mit MD erfolgt,
+  #        die resultierenden Zeilen werden angefügt, bis endlich ein Abruf
+  #        mit weniger als 5000 Zeilen erfolgt (Ausstieg aus der Rekursion)
+  MD <- max(cases$Meldedatum)
+  if (as.numeric(count(cases)) < 5000) return(cases) else
+    return(cases %>% filter(Meldedatum < MD) %>%
+             bind_rows(RKI.cases(AG,MD,MD_bis))
+    )
+  return(cases)
+}
+
+
+# Funktion zählt die Differenz in Tagen vom jüngsten Meldedatum überhaupt bis
+# zum letzten Datum, an dem ein anzugebender Grenzwert überschritten war
+# Parameter: Grenz-/Schwellenwert
+ok <- function(Grenzwert) {  
+  as.numeric((max(timeline$Meldedatum) - max(as.data.frame(timeline[which(timeline$Inzidenz >= Grenzwert),])$Meldedatum)))
+}
+```
+
+```{r Datenabruf, eval=TRUE, echo=FALSE}
+# RKI-Datenbankzahlen (incl. Nachmeldungen)
 cases <- RKI.cases(params$IDKreis, "2020-01-01", Sys.Date()) 
 
+# "Eingefrorene" RKI-Dashboardzahlen (ohne Nachmeldungen, notbremsenrelevant)
+url <- "https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Daten/Fallzahlen_Kum_Tab.xlsx?__blob=publicationFile"
+destfile <- "Fallzahlen_Kum_Tab.xlsx"
+curl::curl_download(url, destfile)
+```
+
+```{r, Erstelle_Timeline, eval=TRUE, echo=FALSE}
 timeline <- cases %>%
   filter(NeuerFall %in% c(1,0)) %>%
   group_by(Meldedatum) %>%
@@ -67,52 +135,30 @@ timeline$Inzidenz.max7 <- rollmax(timeline$Inzidenz, 7,
                                   fill = 0,
                                   align = "right"
 )
+```
+
+```{r, Erstelle_Schwellen, eval=TRUE, echo=FALSE}
+Schwellen <- params$limits %>%
+  as.data.frame() %>%
+  rename(Grenzwert = 1) %>%
+  mutate(bei_Fallzahl = floor(Grenzwert * EWO/100000)) 
+Schwellen$ok_seit <- sapply(Schwellen$Grenzwert, ok)
+# Schwellen$ok_RKI <- sapply(Schwellen$Grenzwert, checkdash)
+
+names(Schwellen) <- c("Grenzwert","max. Fälle","Tag(e)")
 
 
+```
+
+```{r, Erstelle_Weekly_Plot, eval=TRUE, echo=FALSE}
 weekly <- timeline %>%
   mutate(across(3:4, round, 1)) %>% 
   as.data.frame() %>% 
   tail(7) %>% 
   mutate(Inzidenz.1t = round(AnzahlFall/EWO*100000,1)) %>%
-  
   rename(I.1d = 5) %>%
   mutate(cumsum(AnzahlFall)) %>%
   rename(lfd.sum = 6)
-
-
-ok <- function(Grenzwert) {  
-  as.numeric((max(timeline$Meldedatum) - max(as.data.frame(timeline[which(timeline$Inzidenz >= Grenzwert),])$Meldedatum)))
-}
-
-source.file.name <- "Z:/260 Rechtsamt/Sonstiges/Dashboardzahlen, regionaler Vergleich.xlsx"
-Dashboard <- if (file.exists(source.file.name)) as.data.frame(read_excel(source.file.name)) %>%
-  tail(100) %>%
-  select(Meldedatum=Tag, Inzidenz=4) else tail(timeline,100)[,1] %>% mutate(Inzidenz=100000)
-
-checkdash <- function(Grenzwert) {
-  
-  as.numeric((max(Dashboard$Meldedatum) - max(as.data.frame(Dashboard[which(Dashboard$Inzidenz >= Grenzwert),])$Meldedatum)))
-}
-
-# Schwellen <- c(50, 100) %>%
-Schwellen <- params$limits %>%
-  as.data.frame() %>%
-  rename(Grenzwert = 1) %>%
-  mutate(bei_Fallzahl = floor(Grenzwert * EWO/100000)) %>%
-  mutate(Abweichung = round(floor(sum(weekly$AnzahlFall) - bei_Fallzahl))) 
-
-Schwellen$Abweichung <- paste0(symnum(Schwellen$Abweichung,
-                                      c(-Inf, 0, Inf),
-                                      c("", "+")),
-                               Schwellen$Abweichung)
-
-Schwellen$ok_seit <- sapply(Schwellen$Grenzwert, ok)
-Schwellen$ok_RKI <- sapply(Schwellen$Grenzwert, checkdash)
-
-names(Schwellen) <- c("Grenzwert","max. Fälle","Abweichung","Tage in Datenbank","Tage in Dashboard")
-
-
-
 
 weekly.plot <- weekly %>%
   ggplot(aes(x = Meldedatum, y = Inzidenz)) +
@@ -131,7 +177,24 @@ weekly.plot <- weekly %>%
     sum(weekly$AnzahlFall)
   ))
 
+```
 
+```{r, Old_Code, eval=TRUE, echo=FALSE}
+# source.file.name <- "Z:/260 Rechtsamt/Sonstiges/Dashboardzahlen, regionaler Vergleich.xlsx"
+# Dashboard <- if (file.exists(source.file.name)) as.data.frame(read_excel(source.file.name)) %>%
+#   tail(100) %>%
+#   select(Meldedatum=Tag, Inzidenz=4) else tail(timeline,100)[,1] %>% mutate(Inzidenz=100000)
+# 
+# checkdash <- function(Grenzwert) {
+#   
+#   as.numeric((max(Dashboard$Meldedatum) - max(as.data.frame(Dashboard[which(Dashboard$Inzidenz >= Grenzwert),])$Meldedatum)))
+# }
+
+```
+
+
+
+```{r, Erstelle_Delta, eval=TRUE, echo=FALSE}
 delta <- cases %>%
   filter(NeuerFall %in% c(1,-1)) %>%
   group_by(Meldedatum, Art = NeuerFall) %>%
@@ -157,6 +220,9 @@ delta.dem <- if (!exists("delta.dem")) "Keine neuen Fälle oder Nachmeldungen" e
 delta.out <- merge(delta,delta.dem)
 delta.out[is.na(delta.out)] <- 0
 
+```
+
+```{r, Erstelle_weekdays, eval=TRUE, echo=FALSE}
 weekdays <- timeline %>%
   mutate(WD = weekdays(Meldedatum)) %>%
   mutate(DoW = wday(Meldedatum)) %>%
@@ -167,24 +233,34 @@ weekdays <- timeline %>%
   as.data.frame() %>%
   select(Wochentag = WD, Fallzahl_Durchschnitt, DoW)
 ```
-```{r eval=TRUE, echo=FALSE}
-url <- "https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Daten/Fallzahlen_Kum_Tab.xlsx?__blob=publicationFile"
-destfile <- "Fallzahlen_Kum_Tab.xlsx"
-curl::curl_download(url, destfile)
+
+```{r, Auswertung_Dashboardmeldungen, eval=TRUE, echo=FALSE}
+# Auswertung nur der obersten linken Zelle für den Datenstand
 dashdat <- read_excel(destfile, sheet=7, range="A2", col_names = FALSE) 
 dashdat.stand <- as.Date(parse_date_time(substring(dashdat[1,1], 8, 17), order="dmy"))
-# names(dashdat[4]) <- c("Datum")
 
+# Abruf der eigentlichen Daten
 dashdat <- read_excel(destfile, sheet=7, skip=4, col_names = FALSE) %>% select(-1) %>% t()  %>% data.frame()
+
+# AdHoc-Funktion für die Umwandlung der bizarren RKI-Datumsangaben
 as.excel.date=function(x) as.Date(x,origin='1900-01-01')-2
 
+# Datum teilweise als Text im Format "TT.MM.JJJJ", teilweise als Charset im 
+# Format "#####.00000" angegeben, muss getrennt geparst werden.
+# Zielformat: "JJJJ-MM-DD" als date
 dashdat[which(nchar(dashdat$X1) == 10),]$X1 <- as.Date(parse_date_time(dashdat[which(nchar(dashdat$X1) == 10),]$X1, c('d.m.y')))
 dashdat[which(nchar(dashdat$X1) == 11),]$X1 <- dashdat[which(nchar(dashdat$X1) == 11),]$X1 %>% as.numeric() %>% as.excel.date()
+# vorübergehendes Zusammenfassen von AGS und Kreisname
 colnames(dashdat) <- paste0(str_pad(dashdat[2,],5,side=c("left"), pad="0"),"",dashdat[1,])
 
+# Entsorgen der ersten beiden Zeilen
 dashdat <- dashdat[-(1:2),]
 
+
 dashdat$Datum <- as.Date(as.numeric(dashdat$`0LKNRLK`))
+
+
+#Umwandlung breit in lang, Trennung von AGS und Kreis
 dashdat.pivot <- dashdat %>%
   select(-1) %>%
   pivot_longer(!Datum, 
@@ -268,7 +344,7 @@ CasePlot
 
 ```{r, Delta, eval=TRUE, echo=FALSE}
 # print(delta.out, row.names = FALSE)
-knitr::kable(delta.out)
+if(count(delta.out)==0) print("Heute keine neuen Fälle gemeldet") else knitr::kable(delta.out)
 ```
 
 ### Altersstruktur
@@ -313,10 +389,22 @@ BITTE BEACHTEN: Die Anzahl der Tage, seit denen ein Schwellenwert unterschritten
 Rechtlich relevant ist die Berechnung **OHNE** Änderungen, d.h. hier die Spalte "Tage lt. Dashboard". 
 
 ```{r, Schwellen, eval=TRUE, echo=FALSE}
-kable(Schwellen, col.names = c("Grenzwert","max. Fallzahl", "Abweichung", "Tage lt. Datenbank", "Tage lt. Dashboard"), align="ccccc", format = "html", table.attr = "style='width:100%;'")
+kable(Schwellen, col.names = c("Grenzwert","max. Fallzahl", "seit Tag(en)"), align="ccc", format = "html", table.attr = "style='width:100%;'")
 # print(Schwellen, row.names = FALSE)
 ```
 
+### Fallzahlenrückblick über `r backweek-1` Wochen: 
+```{r, Timeline, eval=TRUE, echo=FALSE}
+timeline %>%
+  mutate(Wochentag=weekdays(Meldedatum)) %>%
+  mutate(Relevant = c("Nicht mehr", "Ja")[((today() - Meldedatum <= 7)) + 1]) %>%
+  mutate(Datum=format(Meldedatum, "%d.%m.%Y")) %>%
+  tail((backweek-1)*7) %>%
+  as.data.frame() %>%
+  select(Wochentag, Datum, Fälle=AnzahlFall, Relevant) %>%
+  kable(align="llll", format = "html", table.attr = "style='width:80%;'")
+  # print(row.names = FALSE)
+```
 
 
 Ausblick auf die nächsten 7 Tage
@@ -416,18 +504,6 @@ prog.case.plot
 
 Fallzahlen gehen je nach Wochentag in unterschiedlicher Höhe ein. Basierend auf den letzten `r backweek` Wochen bzw. `r backweek*7` Tagen ergibt sich folgende Verteilung:
 
-### Fallzahlenrückblick über `r backweek` Wochen: 
-```{r, Timeline, eval=TRUE, echo=FALSE}
-timeline %>%
-  mutate(Wochentag=weekdays(Meldedatum)) %>%
-  mutate(Relevant = c("Nicht mehr", "Ja")[((today() - Meldedatum <= 7)) + 1]) %>%
-  mutate(Datum=format(Meldedatum, "%d.%m.%Y")) %>%
-  tail(backweek*7) %>%
-  as.data.frame() %>%
-  select(Wochentag, Datum, Fälle=AnzahlFall, Relevant) %>%
-  kable(align="llll", format = "html", table.attr = "style='width:80%;'")
-  # print(row.names = FALSE)
-```
 
 ### Fallzahlendurchschnitt je Wochentag
 
