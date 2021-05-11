@@ -192,8 +192,6 @@ weekly.plot <- weekly %>%
 
 ```
 
-
-
 ```{r, Erstelle_Delta, eval=TRUE, echo=FALSE}
 delta <- cases %>%
   filter(NeuerFall %in% c(1,-1)) %>%
@@ -283,12 +281,10 @@ dashdat.plot <- dashdat.pivot %>% filter(Kreis %in% c("SK Passau",
 scale_size(range = c(0.5, 1), guide="none")
 ```
 
-Diagramme zur aktuellen Inzidenz
-==================================
+# Diagramme zur aktuellen Inzidenz
 
+## Column {data-width="650"}
 
-Column {data-width=650}
------------------------------------------------------------------------
 ### Inzidenz am `r format(tail(timeline,1)$Meldedatum, "%a, %d.%m.%Y")`
 
 ```{r}
@@ -297,19 +293,16 @@ gauge(round(tail(timeline,1)$Inzidenz,1), min = 0, max = 150,  gaugeSectors(
 ))
 ```
 
-
 ### 7-Tage-Inzidenz: Übersicht
 
 ```{r}
 weekly.plot
 ```
 
-Column {data-width=350}
------------------------------------------------------------------------
-
-
+## Column {data-width="350"}
 
 ### Entwicklung der Inzidenzen
+
 ```{r, Inzidenzplot, eval=TRUE, echo=FALSE}
 InzPlot <- timeline %>% 
   ggplot(aes(x=Meldedatum, y=Inzidenz)) +
@@ -320,6 +313,7 @@ InzPlot
 ```
 
 ### Fälle pro Tag
+
 ```{r, CasePlotAll, echo=FALSE}
 CasePlot <- cases %>%
   filter(NeuerFall %in% c(0,1)) %>%
@@ -334,9 +328,7 @@ CasePlot <- cases %>%
 CasePlot
 ```
 
-
-
-# Strukturdaten {data-orientation=rows}
+# Strukturdaten {data-orientation="rows"}
 
 ## Details zu Inzidenz und Altersstruktur
 
@@ -373,27 +365,26 @@ knitr::kable(Altersstruktur[2:4,], align = c("c","c","c"))
 
 ```
 
-
-Row
------------------------------------------------------------------------
+## Row
 
 ### Grenzwerte
 
-"max. Fallzahl" steht für die höchste Fallzahl, die den jeweiligen Grenzwert noch einhält. "Abweichung" beschreibt, wie weit man über oder unter dieser Fallzahl liegt ("0" ist somit die Punktlandung). 
+"max. Fallzahl" steht für die höchste Fallzahl, die den jeweiligen Grenzwert noch einhält. "Abweichung" beschreibt, wie weit man über oder unter dieser Fallzahl liegt ("0" ist somit die Punktlandung).
 
 BITTE BEACHTEN: Die Anzahl der Tage, seit denen ein Schwellenwert unterschritten wird, kann auf zweierlei Wegen bestimmt werden:
 
-  * bezogen auf die täglichen Veröffentlichungen im RKI-Dashboard (ohne Berücksichtigung nachträglicher Änderungen), oder
-  * bezogen auf die für den zurückliegenden 7-Tage-Zeitraum in der RKI-Datenbank enthaltenen Inzidenzwerte (mit Berücksichtigung nachträglicher Änderungen)
+-   bezogen auf die täglichen Veröffentlichungen im RKI-Dashboard (ohne Berücksichtigung nachträglicher Änderungen), oder
+-   bezogen auf die für den zurückliegenden 7-Tage-Zeitraum in der RKI-Datenbank enthaltenen Inzidenzwerte (mit Berücksichtigung nachträglicher Änderungen)
 
-Rechtlich relevant ist die Berechnung **OHNE** Änderungen, d.h. hier die Spalte "Tage lt. Dashboard". 
+Diese "eingefrorenen Schnellmeldungen" sind für die Beurteilung von Öffnungs-/Schließungsregelungen maßgeblich.
 
 ```{r, Schwellen, eval=TRUE, echo=FALSE}
 kable(Schwellen, col.names = c("Grenzwert","max. Fallzahl", "seit Tag(en)"), align="ccc", format = "html", table.attr = "style='width:100%;'")
 # print(Schwellen, row.names = FALSE)
 ```
 
-### Fallzahlenrückblick über `r backweek-1` Wochen: 
+### Fallzahlenrückblick über `r backweek-1` Wochen:
+
 ```{r, Timeline, eval=TRUE, echo=FALSE}
 timeline %>%
   mutate(Wochentag=weekdays(Meldedatum)) %>%
@@ -406,16 +397,15 @@ timeline %>%
   # print(row.names = FALSE)
 ```
 
+# Ausblick auf die nächsten 7 Tage
 
-Ausblick auf die nächsten 7 Tage
-================================
+------------------------------------------------------------------------
 
+## Blick in die Kristallkugel {.tabset}
 
+### Prognose der Fallzahlen
 
------------------------------------------------------------------------
-## Blick in die Kristallkugel{.tabset}
-### Prognose der Inzidenzen
-```{r, ProgPlotInz, eval=TRUE, echo=FALSE}
+```{r, Prognoseberechnung, eval=TRUE, echo=FALSE}
 two.week <- weekly %>% 
   complete(Meldedatum=seq.Date(min(Meldedatum), 
                                max(Meldedatum) + 7,
@@ -440,36 +430,9 @@ prognosis <- prognosis %>%
          Inz1 = sum1/EWO*100000,
          Inz2 = sum2/EWO*100000)  %>%
   mutate(DT = Meldedatum+1)
-prog.plot <- prognosis %>%
-  ggplot(aes(x=DT)) +
-  geom_line(aes(y=Inz0), color="green", size=1) +
-  geom_line(aes(y=Inz1), size=1) +
-  geom_line(aes(y=Inz2), size=1, color="red") +
-  geom_hline(yintercept=Schwellen[3,1], linetype="dashed", color = "red", size=1) +
-  geom_hline(yintercept=Schwellen[2,1], linetype="dashed", color = "black", size=1) +
-  geom_hline(yintercept=Schwellen[1,1], linetype="dashed", color = "green", size=1) +
-  geom_text(aes(y=Inz0, label=paste0(round(Inz0,1))), position=position_dodge(width=0.9), vjust=0.7) +
-  geom_text(aes(y=Inz1, label=paste0(round(Inz1,1))), position=position_dodge(width=0.9), vjust=-0.7) +
-  geom_text(aes(y=Inz2, label=paste0(round(Inz2,1))), position=position_dodge(width=0.9), vjust=-2.1) +
-  scale_x_date(date_breaks = "1 day", date_labels = "%a, %d.%m.") +
-  geom_text(aes(y=-10, x=DT), label=c("DT",
-                                              "DT+1",
-                                              "DT+2",
-                                              "DT+3",
-                                              "DT+4",
-                                              "DT+5",
-                                              "DT+6",
-                                              "DT+7")) +
-  labs(title=paste0("Absehbare INZIDENZ-Prognose ")) +
-  scale_color_discrete(name ="Legende", labels = c("Var0","Var1","Var2")) +
-  ylab("7-Tage-Inzidenz") + ylim(-10, (floor(max(prognosis$Inz2)/25)+2)*25) +
-  xlab("Veröffentlichungsdatum (1 Tag nach Meldedatum)") 
-prog.plot
 ```
 
 
-
-### Prognose der Fallzahlen
 ```{r, ProgPlotFall, eval=TRUE, echo=FALSE}
 prog.case.plot <- prognosis %>%
   ggplot(aes(x=DT)) +
@@ -500,10 +463,40 @@ prog.case.plot <- prognosis %>%
 prog.case.plot
 ```
 
+### Prognose der Inzidenzen
+
+```{r, ProgPlotInz, eval=TRUE, echo=FALSE}
+prog.plot <- prognosis %>%
+  ggplot(aes(x=DT)) +
+  geom_line(aes(y=Inz0), color="green", size=1) +
+  geom_line(aes(y=Inz1), size=1) +
+  geom_line(aes(y=Inz2), size=1, color="red") +
+  geom_hline(yintercept=Schwellen[3,1], linetype="dashed", color = "red", size=1) +
+  geom_hline(yintercept=Schwellen[2,1], linetype="dashed", color = "black", size=1) +
+  geom_hline(yintercept=Schwellen[1,1], linetype="dashed", color = "green", size=1) +
+  geom_text(aes(y=Inz0, label=paste0(round(Inz0,1))), position=position_dodge(width=0.9), vjust=0.7) +
+  geom_text(aes(y=Inz1, label=paste0(round(Inz1,1))), position=position_dodge(width=0.9), vjust=-0.7) +
+  geom_text(aes(y=Inz2, label=paste0(round(Inz2,1))), position=position_dodge(width=0.9), vjust=-2.1) +
+  scale_x_date(date_breaks = "1 day", date_labels = "%a, %d.%m.") +
+  geom_text(aes(y=-10, x=DT), label=c("DT",
+                                              "DT+1",
+                                              "DT+2",
+                                              "DT+3",
+                                              "DT+4",
+                                              "DT+5",
+                                              "DT+6",
+                                              "DT+7")) +
+  labs(title=paste0("Absehbare INZIDENZ-Prognose ")) +
+  scale_color_discrete(name ="Legende", labels = c("Var0","Var1","Var2")) +
+  ylab("7-Tage-Inzidenz") + ylim(-10, (floor(max(prognosis$Inz2)/25)+2)*25) +
+  xlab("Veröffentlichungsdatum (1 Tag nach Meldedatum)") 
+prog.plot
+```
+
+
 ## Datenbasis für die Prognosen
 
 Fallzahlen gehen je nach Wochentag in unterschiedlicher Höhe ein. Basierend auf den letzten `r backweek` Wochen bzw. `r backweek*7` Tagen ergibt sich folgende Verteilung:
-
 
 ### Fallzahlendurchschnitt je Wochentag
 
@@ -516,10 +509,8 @@ weekdays %>%
   # print(row.names = FALSE)
 ```
 
+# Inzidenzabhängige Öffnungsregelungen {data-orientation="columns"}
 
-
-Inzidenzabhängige Öffnungsregelungen{data-orientation=columns}
-================================
 ```{r eval=TRUE, echo=FALSE}
 url <- "https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Daten/Fallzahlen_Kum_Tab.xlsx?__blob=publicationFile"
 
@@ -535,37 +526,42 @@ dash.rki.stand <- as.Date(parse_date_time(substring(row.names(dash.rki.data)[1],
 dash.rki.data <- as.data.frame(dash.rki.data[-(1:3),]) %>% rename(Dashboard.Inzidenz=1)
 dash.rki.data$Dashboard.Inzidenz <- round(as.numeric(dash.rki.data$Dashboard.Inzidenz),1)
 dash.rki.data$Datum <- dash.rki.stand - max(row(dash.rki.data)) + row(dash.rki.data)
+
+anhang <- timeline %>% tail(1) %>% select(Dashboard.Inzidenz=Inzidenz, Datum=Meldedatum)
+
+if (tail(timeline,1)$Meldedatum == tail(dash.rki.data,1)$Datum) {
+  anhang$Datum <- anhang$Datum + 1
+  rbind(dash.rki.data, anhang)
+} 
+
+
 ```
 
+## Column {data-width="650"}
 
-Column {data-width=650}
------------------------------------------------------------------------
-### Unterschreitung von Schwellenwerten{data-height=200}
+### Unterschreitung von Schwellenwerten {data-height="200"}
 
-Grenzwerte müssen "dauerhaft" unter- bzw. überschritten sein, bevor die damit verbundenen Regelungen greifen. Das gilt im allgemeinen ab dem dritten Tag der Über-/Unterschreitung als der Fall. 
+Grenzwerte müssen "dauerhaft" unter- bzw. überschritten sein, bevor die damit verbundenen Regelungen greifen. Das gilt im allgemeinen ab dem dritten Tag der Über-/Unterschreitung als der Fall.
 
 Bei den 7-Tage-Inzidenzen für frühere Tage muss berücksichtigt werden, dass es sich hier um die jeweils an dem angegebenen Tag berichteten Werte handelt, die **nicht** durch an Folgetagen nachübermittelte Fälle aktualisiert werden (für den Berichtstag "eingefrorene" Werte). RKI stellt diese eingefrorenen Werte einschließlich einer mehrmonatigen Rückschau täglich zur Verfügung.
 
 Der hier verwendete Datenstand ist `r dash.rki.stand`.
 
 ### Vergleich mit den Nachbarn
+
 ```{r, Nachbarvergleich}
 dashdat.plot
 ```
 
+## Column {data-width="350"}
 
-
-
-
-Column {data-width=350}
------------------------------------------------------------------------
 ### Grenzwert 35 unterschritten seit
 
 ```{r}
 gauge(as.numeric(dash.rki.stand - max(dash.rki.data[which(dash.rki.data$Dashboard.Inzidenz >= 35),]$Datum)),
       min = 0,
       max = 10,
-      symbol = ' d',
+      symbol = ' T',
       gaugeSectors(success = c(3, 999),
                    warning = c(1, 3),
                    danger = c(0, 0)
@@ -578,7 +574,7 @@ gauge(as.numeric(dash.rki.stand - max(dash.rki.data[which(dash.rki.data$Dashboar
 gauge(as.numeric(dash.rki.stand - max(dash.rki.data[which(dash.rki.data$Dashboard.Inzidenz >= 50),]$Datum)),
       min = 0,
       max = 10,
-      symbol = ' d',
+      symbol = ' T',
       gaugeSectors(success = c(3, 999),
                    warning = c(1, 3),
                    danger = c(0, 0)
@@ -591,7 +587,7 @@ gauge(as.numeric(dash.rki.stand - max(dash.rki.data[which(dash.rki.data$Dashboar
 gauge(as.numeric(dash.rki.stand - max(dash.rki.data[which(dash.rki.data$Dashboard.Inzidenz >= 100),]$Datum)),
       min = 0,
       max = 10,
-      symbol = ' d',
+      symbol = ' T',
       gaugeSectors(success = c(3, 999),
                    warning = c(1, 3),
                    danger = c(0, 0)
@@ -604,7 +600,7 @@ gauge(as.numeric(dash.rki.stand - max(dash.rki.data[which(dash.rki.data$Dashboar
 gauge(as.numeric(dash.rki.stand - max(dash.rki.data[which(dash.rki.data$Dashboard.Inzidenz >= 150),]$Datum)),
       min = 0,
       max = 10,
-      symbol = ' d',
+      symbol = ' T',
       gaugeSectors(success = c(3, 999),
                    warning = c(1, 3),
                    danger = c(0, 0)
