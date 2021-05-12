@@ -30,6 +30,7 @@ library(knitr)
 library(readxl)
 library(rio)
 library(stringr)
+library(plotly)
 
 # get parameters from YAML header
 EWO <- as.numeric(params$EWO)
@@ -367,35 +368,33 @@ knitr::kable(Altersstruktur[2:4,], align = c("c","c","c"))
 
 ## Row
 
-### Grenzwerte
+### Top Ten in Deutschland
 
-"max. Fallzahl" steht für die höchste Fallzahl, die den jeweiligen Grenzwert noch einhält. "Abweichung" beschreibt, wie weit man über oder unter dieser Fallzahl liegt ("0" ist somit die Punktlandung).
-
-BITTE BEACHTEN: Die Anzahl der Tage, seit denen ein Schwellenwert unterschritten wird, kann auf zweierlei Wegen bestimmt werden:
-
--   bezogen auf die täglichen Veröffentlichungen im RKI-Dashboard (ohne Berücksichtigung nachträglicher Änderungen), oder
--   bezogen auf die für den zurückliegenden 7-Tage-Zeitraum in der RKI-Datenbank enthaltenen Inzidenzwerte (mit Berücksichtigung nachträglicher Änderungen)
-
-Diese "eingefrorenen Schnellmeldungen" sind für die Beurteilung von Öffnungs-/Schließungsregelungen maßgeblich.
-
-```{r, Schwellen, eval=TRUE, echo=FALSE}
-kable(Schwellen, col.names = c("Grenzwert","max. Fallzahl", "seit Tag(en)"), align="ccc", format = "html", table.attr = "style='width:100%;'")
+```{r, TopTenBRD, eval=TRUE, echo=FALSE}
+TopTenBRD <-dashdat.pivot %>%
+  filter(Datum == max(dashdat.pivot$Datum)) %>%
+  select(Kreis, Inzidenz) %>%
+  arrange(Inzidenz) %>%
+  head(10)
+kable(TopTenBRD, align="lr", format = "html", table.attr = "style='width:50%;'")
 # print(Schwellen, row.names = FALSE)
 ```
 
-### Fallzahlenrückblick über `r backweek-1` Wochen:
+### Top Ten in Bayern
 
-```{r, Timeline, eval=TRUE, echo=FALSE}
-timeline %>%
-  mutate(Wochentag=weekdays(Meldedatum)) %>%
-  mutate(Relevant = c("Nicht mehr", "Ja")[((today() - Meldedatum <= 7)) + 1]) %>%
-  mutate(Datum=format(Meldedatum, "%d.%m.%Y")) %>%
-  tail((backweek-1)*7) %>%
-  as.data.frame() %>%
-  select(Wochentag, Datum, Fälle=AnzahlFall, Relevant) %>%
-  kable(align="llll", format = "html", table.attr = "style='width:80%;'")
-  # print(row.names = FALSE)
+```{r, TopTenBayrn, eval=TRUE, echo=FALSE}
+TopTenBayern <-dashdat.pivot %>%
+  filter(Datum == max(dashdat.pivot$Datum)) %>%
+  filter(grepl("09...", AGS)) %>%
+  select(Kreis, Inzidenz) %>%
+  arrange(Inzidenz) %>%
+  head(10)
+kable(TopTenBayern, align="lr", format = "html", table.attr = "style='width:50%;'")
+# print(Schwellen, row.names = FALSE)
 ```
+
+
+
 
 # Ausblick auf die nächsten 7 Tage
 
@@ -531,7 +530,10 @@ anhang <- timeline %>% tail(1) %>% select(Dashboard.Inzidenz=Inzidenz, Datum=Mel
 
 if (tail(timeline,1)$Meldedatum == tail(dash.rki.data,1)$Datum) {
   anhang$Datum <- anhang$Datum + 1
-  rbind(dash.rki.data, anhang)
+  anhang$Dashboard.Inzidenz <- round(anhang$Dashboard.Inzidenz,1)
+  dash.rki.data <- rbind(dash.rki.data, anhang)
+  dash.rki.data$Datum <- as.Date((dash.rki.data$Datum))
+  dash.rki.stand <- dash.rki.stand + 1
 } 
 
 
@@ -545,12 +547,21 @@ Grenzwerte müssen "dauerhaft" unter- bzw. überschritten sein, bevor die damit 
 
 Bei den 7-Tage-Inzidenzen für frühere Tage muss berücksichtigt werden, dass es sich hier um die jeweils an dem angegebenen Tag berichteten Werte handelt, die **nicht** durch an Folgetagen nachübermittelte Fälle aktualisiert werden (für den Berichtstag "eingefrorene" Werte). RKI stellt diese eingefrorenen Werte einschließlich einer mehrmonatigen Rückschau täglich zur Verfügung.
 
-Der hier verwendete Datenstand ist `r dash.rki.stand`.
+Der hier verwendeten Zahlen geben den Meldestand von `r format(as.Date(dash.rki.stand), "%A, %d.%m.%Y")` wieder.
 
 ### Vergleich mit den Nachbarn
 
-```{r, Nachbarvergleich}
-dashdat.plot
+```{r, Nachbarvergleich, eval=TRUE, echo=FALSE}
+timeline.plot <- dashdat.pivot %>%
+  # filter(grepl("0926.", AGS)) %>%
+  filter(Kreis %in% c("SK Passau",
+                      "LK Passau",
+                      "LK Freyung-Grafenau",
+                      "LK Deggendorf",
+                      "LK Rottal-Inn")) %>%
+  filter(Datum >= "2021-01-01") %>%
+  plot_ly(x=~Datum, y=~Inzidenz, type='scatter', color=~Kreis, mode='lines')
+timeline.plot
 ```
 
 ## Column {data-width="350"}
