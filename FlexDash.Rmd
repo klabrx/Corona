@@ -6,7 +6,7 @@ output:
     vertical_layout: fill
 params:
   IDKreis: 09262
-  NameKreis: "Kreisfreie Stadt Passau"
+  NameKreis: "SK Passau"
   EWO: 52803
   backweek: 3
   limits: !r c(35,50,100,150)
@@ -180,18 +180,6 @@ weekly.plot <- weekly %>%
 
 ```
 
-```{r, Old_Code, eval=TRUE, echo=FALSE}
-# source.file.name <- "Z:/260 Rechtsamt/Sonstiges/Dashboardzahlen, regionaler Vergleich.xlsx"
-# Dashboard <- if (file.exists(source.file.name)) as.data.frame(read_excel(source.file.name)) %>%
-#   tail(100) %>%
-#   select(Meldedatum=Tag, Inzidenz=4) else tail(timeline,100)[,1] %>% mutate(Inzidenz=100000)
-# 
-# checkdash <- function(Grenzwert) {
-#   
-#   as.numeric((max(Dashboard$Meldedatum) - max(as.data.frame(Dashboard[which(Dashboard$Inzidenz >= Grenzwert),])$Meldedatum)))
-# }
-
-```
 
 ```{r, Erstelle_Delta, eval=TRUE, echo=FALSE}
 delta <- cases %>%
@@ -235,14 +223,17 @@ weekdays <- timeline %>%
 
 ```{r, Auswertung_Dashboardmeldungen, eval=TRUE, echo=FALSE}
 # Auswertung nur der obersten linken Zelle für den Datenstand
-dashdat <- read_excel(destfile, sheet=7, range="A2", col_names = FALSE) 
-dashdat.stand <- as.Date(parse_date_time(substring(dashdat[1,1], 8, 17), order="dmy"))
+dashdat <- read_excel(destfile,
+                      sheet = 7,
+                      range = "A2",
+                      col_names = FALSE) 
+dashdat.stand <- as.Date(parse_date_time(substring(dashdat[1,1], 8, 17), order = "dmy"))
 
 # Abruf der eigentlichen Daten
 dashdat <- read_excel(destfile, sheet=7, skip=4, col_names = FALSE) %>% select(-1) %>% t()  %>% data.frame()
 
 # AdHoc-Funktion für die Umwandlung der bizarren RKI-Datumsangaben
-as.excel.date=function(x) as.Date(x,origin='1900-01-01')-2
+as.excel.date=function(x) as.Date(x,origin='1899-12-30')
 
 # Datum teilweise als Text im Format "TT.MM.JJJJ", teilweise als Charset im 
 # Format "#####.00000" angegeben, muss getrennt geparst werden.
@@ -527,6 +518,8 @@ dash.rki.data$Dashboard.Inzidenz <- round(as.numeric(dash.rki.data$Dashboard.Inz
 dash.rki.data$Datum <- dash.rki.stand - max(row(dash.rki.data)) + row(dash.rki.data)
 
 anhang <- timeline %>% tail(1) %>% select(Dashboard.Inzidenz=Inzidenz, Datum=Meldedatum)
+
+dash.aktuell <- (tail(timeline,1)$Meldedatum == tail(dash.rki.data,1)$Datum)[1,1]
 
 if (tail(timeline,1)$Meldedatum == tail(dash.rki.data,1)$Datum) {
   anhang$Datum <- anhang$Datum + 1
