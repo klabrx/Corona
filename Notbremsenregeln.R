@@ -55,3 +55,23 @@ below.x.since(50)
 
 # above.35.since <- tail(data[which(Inzidenz < 35 ),1],1) + 1
 # above.35.since
+
+
+
+
+dash.cases <- read_excel(destfile, sheet=6, skip=4, col_names = TRUE)  %>% select(-1) 
+
+
+
+tmp %>% 
+  # grouping key(s):
+  group_by(AGS) %>%
+  # check if there is any value change
+  # if yes, a new sequence id is generated through cumsum
+  mutate(last_one = lag(Stat.est, 1), 
+         not_eq = last_one != Stat.est, 
+         seq = cumsum(not_eq)) %>% 
+  # the following is just to find the largest sequence
+  count(AGS, Stat.est, seq) %>% 
+  group_by(Datum, Stat.est) %>% 
+  summarise(max_consecutive_event = max(n))
