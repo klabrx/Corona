@@ -1,24 +1,21 @@
+# Abruf der eigentlichen Daten:
+dash.inz <- read_excel(destfile,  # vorgeladene Exceldatei
+                       sheet=7,   # Sheet Nr. 7 (Inzidenzen nach Kreisen)
+                       skip=4,    # ohne die ersten 4 Zeilen
+                       col_names = FALSE) %>%
+  select(-1) %>%                  # ohne die erste Spalte
+  t() %>%                         # Datum zeilenweise, Kreis spaltenweise
+  as_tibble()
 
+Datumsbereich <- seq(as.Date(parse_date_time(dash.inz[3,1], c('d.m.y'))), by="day", length=nrow(dash.inz)-2)
 
-# Abruf der eigentlichen Daten
-dash.inz <- read_excel(destfile, sheet=7, skip=4, col_names = FALSE) %>% select(-1) %>% t()  %>% data.frame()
-
-# AdHoc-Funktion für die Umwandlung der bizarren RKI-Datumsangaben
-as.excel.date=function(x) as.Date(x,origin='1899-12-30')
-
-# Datum teilweise als Text im Format "TT.MM.JJJJ", teilweise als Charset im 
-# Format "#####.00000" angegeben, muss getrennt geparst werden.
-# Zielformat: "JJJJ-MM-DD" als date
-dash.inz[which(nchar(dash.inz$X1) == 10),]$X1 <- as.Date(parse_date_time(dash.inz[which(nchar(dash.inz$X1) == 10),]$X1, c('d.m.y')))
-dash.inz[which(nchar(dash.inz$X1) == 11),]$X1 <- dash.inz[which(nchar(dash.inz$X1) == 11),]$X1 %>% as.numeric() %>% as.excel.date()
-# vorübergehendes Zusammenfassen von AGS und Kreisname
 colnames(dash.inz) <- paste0(str_pad(dash.inz[2,],5,side=c("left"), pad="0"),"",dash.inz[1,])
 
 # Entsorgen der ersten beiden Zeilen
-dash.inz <- dash.inz[-(1:2),]
+dash.inz <- dash.inz[-(1:2),] %>% mutate(Datum=Datumsbereich)
 
 
-dash.inz$Datum <- as.Date(as.numeric(dash.inz$`0LKNRLK`))
+# dash.inz$Datum <- as.Date(as.numeric(dash.inz$`0LKNRLK`))
 
 
 #Umwandlung breit in lang, Trennung von AGS und Kreis
@@ -45,25 +42,23 @@ dash.inz.plot <- dash.inz.pivot %>% filter(Kreis %in% c("SK Passau",
 
 
 
-# ... und nochmal das gleiche, nur diesmal für die Fallzahlen
-dash.cases <- read_excel(destfile, sheet=6, skip=4, col_names = FALSE) %>% select(-1) %>% t()  %>% data.frame()
+# Abruf der eigentlichen Daten:
+dash.cases <- read_excel(destfile,  # vorgeladene Exceldatei
+                       sheet=6,   # Sheet Nr. 6 (Fazzahlen nach Kreisen)
+                       skip=4,    # ohne die ersten 4 Zeilen
+                       col_names = FALSE) %>%
+  select(-1) %>%                  # ohne die erste Spalte
+  t() %>%                         # Datum zeilenweise, Kreis spaltenweise
+  as_tibble()
 
-# AdHoc-Funktion für die Umwandlung der bizarren RKI-Datumsangaben
-as.excel.date=function(x) as.Date(x,origin='1899-12-30')
 
-# Datum teilweise als Text im Format "TT.MM.JJJJ", teilweise als Charset im 
-# Format "#####.00000" angegeben, muss getrennt geparst werden.
-# Zielformat: "JJJJ-MM-DD" als date
-dash.cases[which(nchar(dash.cases$X1) == 10),]$X1 <- as.Date(parse_date_time(dash.cases[which(nchar(dash.cases$X1) == 10),]$X1, c('d.m.y')))
-dash.cases[which(nchar(dash.cases$X1) == 11),]$X1 <- dash.cases[which(nchar(dash.cases$X1) == 11),]$X1 %>% as.numeric() %>% as.excel.date()
-# vorübergehendes Zusammenfassen von AGS und Kreisname
 colnames(dash.cases) <- paste0(str_pad(dash.cases[2,],5,side=c("left"), pad="0"),"",dash.cases[1,])
 
 # Entsorgen der ersten beiden Zeilen
-dash.cases <- dash.cases[-(1:2),]
+dash.cases <- dash.cases[-(1:2),] %>% mutate(Datum=Datumsbereich)
 
 
-dash.cases$Datum <- as.Date(as.numeric(dash.cases$`0LKNRLK`))
+# dash.cases$Datum <- as.Date(as.numeric(dash.cases$`0LKNRLK`))
 
 
 #Umwandlung breit in lang, Trennung von AGS und Kreis
@@ -77,12 +72,30 @@ dash.cases.pivot <- dash.cases %>%
 dash.cases.pivot$mysize <- rep(0.5, nrow(dash.cases.pivot))
 dash.cases.pivot$mysize[dash.cases.pivot$AGS=="09262"] <- 1
 
+
+
+dash.cases.AGS <- dash.cases.pivot %>% filter(AGS == AG)
+dash.inz.AGS <- dash.inz.pivot %>% filter(AGS == AG)
+dash.AGS <- dash.cases.AGS %>% full_join(dash.inz.AGS)
+
+
 dash.cases.plot <- dash.cases.pivot %>% filter(Kreis %in% c("SK Passau",
-                                                            "LK Passau",
-                                                            "SK Landshut",
-                                                            "LK Freyung-Grafenau",
-                                                            "LK Rottal-Inn",
-                                                            "LK Deggendorf")) %>%
+                                                        "LK Passau",
+                                                        "SK Landshut",
+                                                        "LK Freyung-Grafenau",
+                                                        "LK Rottal-Inn",
+                                                        "LK Deggendorf")) %>%
   ggplot(aes(x = Datum, y = Inzidenz, group=Kreis, color=Kreis, size=mysize)) + 
   geom_line() +
   scale_size(range = c(0.5, 1), guide="none")
+
+
+
+# Vergleich dashboard vs. timeline,
+
+comparison <- timeline %>% mutate (Datum = Meldedatum + 1) %>%
+  inner_join(dash.AGS, by = "Datum") %>%
+  select(Meldedatum, Inz.API=Inzidenz.x, Inz.Dashboard=Inzidenz.y) %>% 
+  pivot_longer(!Meldedatum, names_to = "Quelle", values_to = "Inzidenz") %>% 
+  plot_ly(x=~Meldedatum, y=~Inzidenz, type='scatter', color=~Quelle, mode='lines')
+# comparison

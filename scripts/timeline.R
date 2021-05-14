@@ -24,15 +24,15 @@ timeline$Inzidenz.max7 <- rollmax(timeline$Inzidenz, 7,
 
 
 # In development:
-# 
-# fig.timeline.cases <- timeline %>% 
+
+# fig.timeline.cases <- timeline %>%
 #   plot_ly(x = ~Meldedatum, y = ~AnzahlFall, type = "scatter", mode = "lines")
 # 
-# fig.timeline.Inz <- timeline %>% 
+# fig.timeline.Inz <- timeline %>%
 #   plot_ly(x = ~Meldedatum, y = ~Inzidenz, type = "scatter", mode = "lines")
 # 
 # fig.timeline.Inz
 # 
 # 
 # dash.09262 <- dash.cases.pivot %>% filter(AGS == "09262")
-# fig.timeline.cases %>% add_lines(x = ~dash.09262$Datum, y = ~dash.09262$Inzidenz)
+# fig.timeline.cases %>% add_lines(x = ~dash.09262$Datum, y = ~dash.09262$Fallzahl)
