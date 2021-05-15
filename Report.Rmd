@@ -35,7 +35,11 @@ library(flexdashboard)
 library(knitr)
 library(readxl)
 
-source("./functions/functions.R")
+eval(parse("./functions/API_Abruf.R", encoding="UTF-8"))
+eval(parse("./functions/ok.R", encoding="UTF-8"))
+eval(parse("./functions/status.R", encoding="UTF-8"))
+
+
 EWO <- as.numeric(params$EWO)
 backweek <- params$backweek
 AG <- params$IDKreis
