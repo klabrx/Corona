@@ -5,3 +5,5 @@ Tagesstatus <- function(data){
   if(status.est == Tagesstatus(lag(data))) return(status.est) else return("Unterschied)")
     
 }
+
+status(as.numeric(dash.AGS[nrow(dash.AGS),6]))
