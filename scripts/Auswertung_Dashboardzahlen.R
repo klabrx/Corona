@@ -99,3 +99,8 @@ comparison <- timeline %>% mutate (Datum = Meldedatum + 1) %>%
   pivot_longer(!Meldedatum, names_to = "Quelle", values_to = "Inzidenz") %>% 
   plot_ly(x=~Meldedatum, y=~Inzidenz, type='scatter', color=~Quelle, mode='lines')
 # comparison
+
+# Formel für Zeitdauer
+# max(dash.AGS[which(dash.AGS$Inzidenz > 100),]$Datum) - max(dash.AGS[which(dash.AGS$Inzidenz < 100),]$Datum)
+# max(-6,as.numeric(max(dash.AGS[which(dash.AGS$Inzidenz > 100),]$Datum) - max(dash.AGS[which(dash.AGS$Inzidenz < 100),]$Datum)))
+
