@@ -104,9 +104,9 @@ comparison <- timeline %>% mutate (Datum = Meldedatum + 1) %>%
 # max(dash.AGS[which(dash.AGS$Inzidenz > 100),]$Datum) - max(dash.AGS[which(dash.AGS$Inzidenz < 100),]$Datum)
 # max(-6,as.numeric(max(dash.AGS[which(dash.AGS$Inzidenz > 100),]$Datum) - max(dash.AGS[which(dash.AGS$Inzidenz < 100),]$Datum)))
 
-Dauer.Grenzwert <- function(Grenzwert) {
+Dauer.Grenzwert <- function(Grenzwert, low=-10, high=10) {
   Tage <- max(dash.AGS[which(dash.AGS$Inzidenz > Grenzwert),]$Datum) - max(dash.AGS[which(dash.AGS$Inzidenz < Grenzwert),]$Datum)
-  Tage <- as.numeric(Tage)
+  Tage <- max(low,min(high,as.numeric(Tage)))
   return(Tage)
 }
 
@@ -127,3 +127,28 @@ Statustext <- function(Tage) {return(cut(Tage,
                                   )
 )
 }
+
+Notbrems.Grenzwerte <- limits %>%  bind_cols(sapply(limits, Dauer.Grenzwert)) %>%
+  rename(Grenzwert=1, Tage=2) %>%
+  mutate(Status= Statustext(Tage)) %>% as_tibble()
+
+Notbremse <- max(-6,min(4,Dauer.Grenzwert(100)))
+
+Notbremse
+
+f <- list(
+  size = 18,
+  color = "#7f7f7f"
+)
+x <- list(
+  title = "Über-/Unterschreitung seit Tagen",
+  titlefont = f
+)
+y <- list(
+  title = "Grenzwert",
+  titlefont = f
+)
+fig.Notbremse <- Notbrems.Grenzwerte %>% 
+  plot_ly(x = ~Tage, y = ~str_pad(as.character(Grenzwert),3, "left", "0"), type = 'bar', orientation = 'h')
+
+fig.Notbremse %>% layout(xaxis = x, yaxis = y)
