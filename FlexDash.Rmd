@@ -40,6 +40,7 @@ AG <- params$IDKreis
 Altersklassen <- data.frame(Altersklasse     = params$Altersklasse,
                             EWO              = params$EWOAK,
                             stringsAsFactors = FALSE)
+limits <- params$limits
 ```
 
 ```{r Code, eval=TRUE, echo=FALSE}

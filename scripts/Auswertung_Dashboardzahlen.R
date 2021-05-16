@@ -104,3 +104,26 @@ comparison <- timeline %>% mutate (Datum = Meldedatum + 1) %>%
 # max(dash.AGS[which(dash.AGS$Inzidenz > 100),]$Datum) - max(dash.AGS[which(dash.AGS$Inzidenz < 100),]$Datum)
 # max(-6,as.numeric(max(dash.AGS[which(dash.AGS$Inzidenz > 100),]$Datum) - max(dash.AGS[which(dash.AGS$Inzidenz < 100),]$Datum)))
 
+Dauer.Grenzwert <- function(Grenzwert) {
+  Tage <- max(dash.AGS[which(dash.AGS$Inzidenz > Grenzwert),]$Datum) - max(dash.AGS[which(dash.AGS$Inzidenz < Grenzwert),]$Datum)
+  Tage <- as.numeric(Tage)
+  return(Tage)
+}
+
+Statustext <- function(Tage) {return(cut(Tage,
+                                  breaks=c(-Inf, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, Inf),
+                                  labels=c("Seit mehr als 5 Tagen unterschritten",
+                                           "seit 5 Tagen unterschritten: Heute Bekanntmachung!",
+                                           "seit 4 Tagen unterschritten: Morgen Bekanntmachung!",
+                                           "seit 3 Tagen unterschritten: Übermorgen Bekanntmachung!",
+                                           "seit 2 Tagen unterschritten",
+                                           "erstmals unterschritten",
+                                           "aktueller Grenzwert eingehalten",
+                                           "erstmals überschritten: Übermorgen Bekanntmachung!",
+                                           "seit zwei Tagen überschritten: Morgen Bekanntmachung!",
+                                           "seit drei Tagen überschritten: Heute Bekanntmachung!",
+                                           "seit mehr als 3 Tagen überschritten"
+                                           )
+                                  )
+)
+}
