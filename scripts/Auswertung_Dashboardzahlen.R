@@ -152,3 +152,6 @@ fig.Notbremse <- Notbrems.Grenzwerte %>%
   plot_ly(x = ~Tage, y = ~str_pad(as.character(Grenzwert),3, "left", "0"), type = 'bar', orientation = 'h')
 
 # fig.Notbremse %>% layout(xaxis = x, yaxis = y)
+
+
+

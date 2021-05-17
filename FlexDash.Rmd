@@ -341,6 +341,18 @@ timeline.plot <- dash.inz.pivot %>%
   filter(Datum >= "2021-01-01") %>%
   plot_ly(x=~Datum, y=~Inzidenz, type='scatter', color=~Kreis, mode='lines')
 timeline.plot
+
+# In development
+# 
+# dash.schaerding <- timeline_at %>%
+#   rename(Datum=1, Kreis=2, Inzidenz=as.numeric(8)) %>% 
+#   filter(Datum >= "2021-01-01") %>% 
+#   filter(Kreis == "Schärding") %>%
+#   select (c(1,2,8))
+# 
+# dash.schaerding$Inzidenz <- as.numeric(dash.schaerding$Inzidenz)
+
+tail(dash.schaerding)
 ```
 
 ## Column {data-width="350"}

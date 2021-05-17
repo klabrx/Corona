@@ -13,3 +13,13 @@ cases <- RKI.cases(params$IDKreis, "2020-01-01", Sys.Date())
 url <- "https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Daten/Fallzahlen_Kum_Tab.xlsx?__blob=publicationFile"
 destfile <- "Fallzahlen_Kum_Tab.xlsx"
 curl::curl_download(url, destfile)
+
+
+# Zahlen aus Österreich
+timeline_at <- read_delim("https://covid19-dashboard.ages.at/data/CovidFaelle_Timeline_GKZ.csv",
+";", escape_double = FALSE, col_types = cols(Time = col_datetime(format = "%d.%m.%Y %H:%M:%S")),
+trim_ws = TRUE) %>% filter(Bezirk == "Schärding")
+
+View(timeline_at)
+
+
