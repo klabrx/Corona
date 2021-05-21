@@ -1,0 +1,34 @@
+---
+title: "Notbremsenregelungen"
+output: html_notebook
+---
+
+Die "Notbremsenregelungen" sind alles andere als übersichtlich.
+
+1.  Frage: "Wo stehe ich heute?"
+
+    1.  000-035
+
+    2.  035-050
+
+    3.  050-100
+
+        1.  Ja. Wo war ich vorgestern?
+
+            1.  0035-050: Status wie vorgestern
+
+    4.  100-150
+
+    5.  150-200
+
+    6.  200+
+
+```{r}
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

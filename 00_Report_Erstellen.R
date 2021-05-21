@@ -10,4 +10,3 @@ rmarkdown::render(
   output_file = paste0("./html/Flexdashboard-", Sys.Date(), ".html"),
   output_dir = paste0("html/", "09262")
 )
-
