@@ -28,6 +28,7 @@ library(ggrepel)
 library(flexdashboard)
 library(knitr)
 library(readxl)
+library(readr)
 library(rio)
 library(stringr)
 library(plotly)
@@ -352,7 +353,7 @@ timeline.plot
 # 
 # dash.schaerding$Inzidenz <- as.numeric(dash.schaerding$Inzidenz)
 
-tail(dash.schaerding)
+# tail(dash.schaerding)
 ```
 
 ## Column {data-width="350"}

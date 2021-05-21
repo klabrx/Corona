@@ -18,9 +18,7 @@ params:
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(message = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
-```
 
-```{r, Code, eval=TRUE, echo=FALSE}
 library(curl)
 library(jsonlite)
 library(lubridate)
@@ -34,140 +32,182 @@ library(ggrepel)
 library(flexdashboard)
 library(knitr)
 library(readxl)
+library(readr)
+library(plotly)
+library(stringr)
 
-eval(parse("./functions/API_Abruf.R", encoding="UTF-8"))
-eval(parse("./functions/ok.R", encoding="UTF-8"))
-eval(parse("./functions/status.R", encoding="UTF-8"))
-
-
+# get parameters from YAML header
 EWO <- as.numeric(params$EWO)
 backweek <- params$backweek
 AG <- params$IDKreis
-Altersklassen <- data.frame(Altersklasse = params$Altersklasse, EWO = params$EWOAK, stringsAsFactors = FALSE)
+Kreis <- params$NameKreis
+Altersklassen <- data.frame(Altersklasse     = params$Altersklasse,
+                            EWO              = params$EWOAK,
+                            stringsAsFactors = FALSE)
+limits <- params$limits
+```
 
-cases <- RKI.cases(params$IDKreis, "2020-01-01", Sys.Date()) 
+```{r, Code, eval=TRUE, echo=FALSE}
+# Funktionen
+funclist <- c("API_Abruf",
+              "ok",
+              "status")
 
-timeline <- cases %>%
-  filter(NeuerFall %in% c(1,0)) %>%
-  group_by(Meldedatum) %>%
-  arrange(Meldedatum) %>%
-  summarise_at(c("AnzahlFall"), sum, na.rm = TRUE) %>%
-  complete(Meldedatum = seq.Date(min(Meldedatum), today() - 1, by = "day"))
+for(func in funclist) eval(parse(paste0("./functions/", func, ".R"),
+                                     encoding = "UTF-8"))
 
-timeline$AnzahlFall <- replace(timeline$AnzahlFall, is.na(timeline$AnzahlFall), 0)
+# eval(parse("./functions/API_Abruf.R", encoding="UTF-8"))
+# eval(parse("./functions/ok.R", encoding="UTF-8"))
+# eval(parse("./functions/status.R", encoding="UTF-8"))
+
+# Subscripts
+
+scriptlist <- c("Datenabruf",
+                "timeline",
+                "Schwellen",
+                "delta",
+                "weekly",
+                "fig.Inz.gauge",
+                "weekdays",
+                "Auswertung_Dashboardzahlen")
+
+for(script in scriptlist) eval(parse(paste0("./scripts/", script, ".R"),
+                                     encoding = "UTF-8"))
+
+# 
+# eval(parse("./scripts/Datenabruf.R",                 encoding = "UTF-8"))
+# eval(parse("./scripts/timeline.R",                   encoding = "UTF-8"))
+# eval(parse("./scripts/Schwellen.R",                  encoding = "UTF-8"))
+# eval(parse("./scripts/weekly.R",                     encoding = "UTF-8"))
+# eval(parse("./scripts/delta.R",                      encoding = "UTF-8"))
+# eval(parse("./scripts/fig.Inz.gauge.R",              encoding = "UTF-8"))
+# eval(parse("./scripts/weekdays.R",                   encoding = "UTF-8"))
+# eval(parse("./scripts/Auswertung_Dashboardzahlen.R", encoding = "UTF-8"))
+
+
+# cases <- RKI.cases(params$IDKreis, "2020-01-01", Sys.Date()) 
+# 
+# timeline <- cases %>%
+#   filter(NeuerFall %in% c(1,0)) %>%
+#   group_by(Meldedatum) %>%
+#   arrange(Meldedatum) %>%
+#   summarise_at(c("AnzahlFall"), sum, na.rm = TRUE) %>%
+#   complete(Meldedatum = seq.Date(min(Meldedatum), today() - 1, by = "day"))
+# 
+# timeline$AnzahlFall <- replace(timeline$AnzahlFall, is.na(timeline$AnzahlFall), 0)
 
 # Rückblickende Summe der Fallzahlen der letzten 7 Tage, von jedem einzelnen
 # Datum aus gerechnet, das ganze auf 100.000 Einwohner normalisiert ergibt
 # die berüchtigte "7-Tage-je-100.000-Einwohner-Inzidenz"
-timeline$Inzidenz <- rollsum(timeline$AnzahlFall, 7,
-                             fill = 0,
-                             align = "right") * 100000 / EWO
+# timeline$Inzidenz <- rollsum(timeline$AnzahlFall, 7,
+#                              fill = 0,
+#                              align = "right") * 100000 / EWO
 
 # Höchste Inzidenz der jeweils vorausgehenden 7 Tage, liefert die Aussage, ob
 # ein bestimmter Wert in dieser Zeit nicht überschritten wurde
-timeline$Inzidenz.max7 <- rollmax(timeline$Inzidenz, 7,
-                                  fill = 0,
-                                  align = "right"
-)
+# timeline$Inzidenz.max7 <- rollmax(timeline$Inzidenz, 7,
+#                                   fill = 0,
+#                                   align = "right"
+# )
 
-
-weekly <- timeline %>%
-  mutate(across(3:4, round, 1)) %>% 
-  as.data.frame() %>% 
-  tail(7) %>% 
-  mutate(Inzidenz.1t = round(AnzahlFall/EWO*100000,1)) %>%
-  
-  rename(I.1d = 5) %>%
-  mutate(cumsum(AnzahlFall)) %>%
-  rename(lfd.sum = 6)
-
-
-ok <- function(Grenzwert) {  
-  as.numeric((max(timeline$Meldedatum) - max(as.data.frame(timeline[which(timeline$Inzidenz >= Grenzwert),])$Meldedatum)))
-}
-
-source.file.name <- "Z:/260 Rechtsamt/Sonstiges/Dashboardzahlen, regionaler Vergleich.xlsx"
-Dashboard <- if (file.exists(source.file.name)) as.data.frame(read_excel(source.file.name)) %>%
-  tail(100) %>%
-  select(Meldedatum=Tag, Inzidenz=4) else tail(timeline,100)[,1] %>% mutate(Inzidenz=100000)
-
-checkdash <- function(Grenzwert) {
-  
-  as.numeric((max(Dashboard$Meldedatum) - max(as.data.frame(Dashboard[which(Dashboard$Inzidenz >= Grenzwert),])$Meldedatum)))
-}
+# 
+# weekly <- timeline %>%
+#   mutate(across(3:4, round, 1)) %>% 
+#   as.data.frame() %>% 
+#   tail(7) %>% 
+#   mutate(Inzidenz.1t = round(AnzahlFall/EWO*100000,1)) %>%
+#   
+#   rename(I.1d = 5) %>%
+#   mutate(cumsum(AnzahlFall)) %>%
+#   rename(lfd.sum = 6)
+# 
+# 
+# ok <- function(Grenzwert) {  
+#   as.numeric((max(timeline$Meldedatum) - max(as.data.frame(timeline[which(timeline$Inzidenz >= Grenzwert),])$Meldedatum)))
+# }
+# 
+# source.file.name <- "Z:/260 Rechtsamt/Sonstiges/Dashboardzahlen, regionaler Vergleich.xlsx"
+# Dashboard <- if (file.exists(source.file.name)) as.data.frame(read_excel(source.file.name)) %>%
+#   tail(100) %>%
+#   select(Meldedatum=Tag, Inzidenz=4) else tail(timeline,100)[,1] %>% mutate(Inzidenz=100000)
+# 
+# checkdash <- function(Grenzwert) {
+#   
+#   as.numeric((max(Dashboard$Meldedatum) - max(as.data.frame(Dashboard[which(Dashboard$Inzidenz >= Grenzwert),])$Meldedatum)))
+# }
 
 # Schwellen <- c(50, 100) %>%
-Schwellen <- params$limits %>%
-  as.data.frame() %>%
-  rename(Grenzwert = 1) %>%
-  mutate(bei_Fallzahl = floor(Grenzwert * EWO/100000)) %>%
-  mutate(Abweichung = round(floor(sum(weekly$AnzahlFall) - bei_Fallzahl))) 
-
-Schwellen$Abweichung <- paste0(symnum(Schwellen$Abweichung,
-                                      c(-Inf, 0, Inf),
-                                      c("", "+")),
-                               Schwellen$Abweichung)
-
-Schwellen$ok_seit <- sapply(Schwellen$Grenzwert, ok)
-Schwellen$ok_RKI <- sapply(Schwellen$Grenzwert, checkdash)
-
-names(Schwellen) <- c("Grenzwert","max. Fälle","Abweichung","Tage in Datenbank","Tage in Dashboard")
-
-
+# Schwellen <- params$limits %>%
+#   as.data.frame() %>%
+#   rename(Grenzwert = 1) %>%
+#   mutate(bei_Fallzahl = floor(Grenzwert * EWO/100000)) %>%
+#   mutate(Abweichung = round(floor(sum(weekly$AnzahlFall) - bei_Fallzahl))) 
+# 
+# Schwellen$Abweichung <- paste0(symnum(Schwellen$Abweichung,
+#                                       c(-Inf, 0, Inf),
+#                                       c("", "+")),
+#                                Schwellen$Abweichung)
+# 
+# Schwellen$ok_seit <- sapply(Schwellen$Grenzwert, ok)
+# Schwellen$ok_RKI <- sapply(Schwellen$Grenzwert, checkdash)
+# 
+# names(Schwellen) <- c("Grenzwert","max. Fälle","Abweichung","Tage in Datenbank","Tage in Dashboard")
 
 
-weekly.plot <- weekly %>%
-  ggplot(aes(x = Meldedatum, y = Inzidenz)) +
-  geom_bar(stat = "identity", width = 1, fill = "grey") +
-  geom_bar(aes(y = I.1d, x = Meldedatum), stat = "identity") +
-  geom_text(aes(label = paste0("", round(Inzidenz,1))), position = position_dodge(width = 0.9), vjust=1.5, size=5) +
-  geom_text(aes(label=paste0("N: ", round(AnzahlFall,1))), position=position_dodge(width=0.9), vjust=4.5) +
-  geom_text(aes(y=I.1d, label=paste0("I.1d: ", round(I.1d,1))), position=position_dodge(width=0.9), vjust=-1.5) +
-  geom_text(aes(label=paste0("lSum: ",  lfd.sum)), position=position_dodge(width=0.9), vjust=7.5) +
-  geom_hline(yintercept=Schwellen[3,1], linetype="dashed", color = "red", size=1) +
-  geom_hline(yintercept=Schwellen[2,1], linetype="dashed", color = "black", size=1) +
-  geom_hline(yintercept=Schwellen[1,1], linetype="dashed", color = "green", size=1) +
-  scale_x_date(date_breaks = "1 day", date_labels = "%a, %d.%m.%Y") +
-  labs(title = paste0(
-    "Summe Fallzahlen (7 Tage): ",
-    sum(weekly$AnzahlFall)
-  ))
 
 
-delta <- cases %>%
-  filter(NeuerFall %in% c(1,-1)) %>%
-  group_by(Meldedatum, Art = NeuerFall) %>%
-  summarize(Fallzahl = sum(AnzahlFall)) %>%
-  as.data.frame() %>%
-  mutate(Art = c("Storno", "-", "Neu")[Art + 2]) %>%
-  mutate(Inzidenzrelevant = c("Nein", "Ja")[((today() - Meldedatum <= 7)) + 1])
-delta <- if (!exists("delta")) "Keine neuen Fälle oder Nachmeldungen" else delta
-
-delta.dem <- cases %>%
-  filter(NeuerFall %in% c(1,-1)) %>%
-  group_by(Meldedatum, Art = NeuerFall, Altersgruppe) %>%
-  summarize(Fallzahl = sum(AnzahlFall)) %>%
-  as.data.frame() %>%
-  mutate(Art = c("Storno", "-", "Neu")[Art + 2]) %>%
-  mutate(Inzidenzrelevant = c("Nein", "Ja")[((today() - Meldedatum <= 7)) + 1]) %>%
-  pivot_wider(names_from = "Altersgruppe", values_from = "Fallzahl") %>%
-  select(sort(names(.))) %>%
-  as.data.frame()
-delta.dem <- if (!exists("delta.dem")) "Keine neuen Fälle oder Nachmeldungen" else delta.dem
+# weekly.plot <- weekly %>%
+#   ggplot(aes(x = Meldedatum, y = Inzidenz)) +
+#   geom_bar(stat = "identity", width = 1, fill = "grey") +
+#   geom_bar(aes(y = I.1d, x = Meldedatum), stat = "identity") +
+#   geom_text(aes(label = paste0("", round(Inzidenz,1))), position = position_dodge(width = 0.9), vjust=1.5, size=5) +
+#   geom_text(aes(label=paste0("N: ", round(AnzahlFall,1))), position=position_dodge(width=0.9), vjust=4.5) +
+#   geom_text(aes(y=I.1d, label=paste0("I.1d: ", round(I.1d,1))), position=position_dodge(width=0.9), vjust=-1.5) +
+#   geom_text(aes(label=paste0("lSum: ",  lfd.sum)), position=position_dodge(width=0.9), vjust=7.5) +
+#   geom_hline(yintercept=Schwellen[3,1], linetype="dashed", color = "red", size=1) +
+#   geom_hline(yintercept=Schwellen[2,1], linetype="dashed", color = "black", size=1) +
+#   geom_hline(yintercept=Schwellen[1,1], linetype="dashed", color = "green", size=1) +
+#   scale_x_date(date_breaks = "1 day", date_labels = "%a, %d.%m.%Y") +
+#   labs(title = paste0(
+#     "Summe Fallzahlen (7 Tage): ",
+#     sum(weekly$AnzahlFall)
+#   ))
 
 
-delta.out <- merge(delta,delta.dem)
-delta.out[is.na(delta.out)] <- 0
+# delta <- cases %>%
+#   filter(NeuerFall %in% c(1,-1)) %>%
+#   group_by(Meldedatum, Art = NeuerFall) %>%
+#   summarize(Fallzahl = sum(AnzahlFall)) %>%
+#   as.data.frame() %>%
+#   mutate(Art = c("Storno", "-", "Neu")[Art + 2]) %>%
+#   mutate(Inzidenzrelevant = c("Nein", "Ja")[((today() - Meldedatum <= 7)) + 1])
+# delta <- if (!exists("delta")) "Keine neuen Fälle oder Nachmeldungen" else delta
+# 
+# delta.dem <- cases %>%
+#   filter(NeuerFall %in% c(1,-1)) %>%
+#   group_by(Meldedatum, Art = NeuerFall, Altersgruppe) %>%
+#   summarize(Fallzahl = sum(AnzahlFall)) %>%
+#   as.data.frame() %>%
+#   mutate(Art = c("Storno", "-", "Neu")[Art + 2]) %>%
+#   mutate(Inzidenzrelevant = c("Nein", "Ja")[((today() - Meldedatum <= 7)) + 1]) %>%
+#   pivot_wider(names_from = "Altersgruppe", values_from = "Fallzahl") %>%
+#   select(sort(names(.))) %>%
+#   as.data.frame()
+# delta.dem <- if (!exists("delta.dem")) "Keine neuen Fälle oder Nachmeldungen" else delta.dem
+# 
+# 
+# delta.out <- merge(delta,delta.dem)
+# delta.out[is.na(delta.out)] <- 0
 
-weekdays <- timeline %>%
-  mutate(WD = weekdays(Meldedatum)) %>%
-  mutate(DoW = wday(Meldedatum)) %>%
-  filter(Meldedatum > max(Meldedatum - backweek * 7)) %>%
-  group_by(DoW, WD) %>%
-  summarize(Fallzahl_Durchschnitt = round(mean(AnzahlFall), 2), sd = sd(AnzahlFall), .groups = "keep") %>%
-  arrange(DoW) %>%
-  as.data.frame() %>%
-  select(Wochentag = WD, Fallzahl_Durchschnitt, DoW)
+# weekdays <- timeline %>%
+#   mutate(WD = weekdays(Meldedatum)) %>%
+#   mutate(DoW = wday(Meldedatum)) %>%
+#   filter(Meldedatum > max(Meldedatum - backweek * 7)) %>%
+#   group_by(DoW, WD) %>%
+#   summarize(Fallzahl_Durchschnitt = round(mean(AnzahlFall), 2), sd = sd(AnzahlFall), .groups = "keep") %>%
+#   arrange(DoW) %>%
+#   as.data.frame() %>%
+#   select(Wochentag = WD, Fallzahl_Durchschnitt, DoW)
 ```
 
 ## Infos zum Bericht{.tabset}
@@ -176,7 +216,7 @@ weekdays <- timeline %>%
 
 | Amtliche RKI-Corona-Daten für Land-/Stadtkreis |               Abrufzeitpunkt               |Aktuelle Inzidenz|
 |:----------------------------------------------:|:------------------------------------------:|
-|                 `r params$NameKreis`                 | `r format(now(),"%A, %d.%m.%Y, %H:%M:%S")` |
+|                 `r Kreis`                 | `r format(now(),"%A, %d.%m.%Y, %H:%M:%S")` |
 
 
 ### Inzidenzrelevanter Zeitraum
@@ -196,10 +236,9 @@ weekdays <- timeline %>%
 weekly.plot
 ```
 
-Erläuterung der Zahlenangaben:\
-**N**: Anzahl der neu und nachträglich gemeldeten abzüglich der gestrichenen Fälle des jeweiligen Tages\
-**I.1d** ("1-Tages-Inzidenz"): Höhe des Beitrags, den dieser Tag zur Wocheninzidenz leistet\
-**lSum**: Aggregierte Summe der Fallzahlen über den Verlauf der beobachteten Woche. Der erste Tag entspricht diesem einzelnen Tag (und fällt als nächstes aus der Inzidenz), der letzte Tag entspricht der Wochen-Inzidenz.
+Angegeben ist die jeweilige Inzidenz für den Tag des Meldedatums (oben) sowie 
+die für diesen Tag gemeldeten Fälle (unten). Fälle, die erstmals in der Inzidenz 
+auftauchen (auch nachgemeldete für vergangene Tage) sind rot dargestellt.
 
 ### Inzidenzverlauf
 ```{r, Inzidenzplot, eval=TRUE, echo=FALSE}
@@ -284,7 +323,7 @@ BITTE BEACHTEN: Die Anzahl der Tage, seit denen ein Schwellenwert unterschritten
 Rechtlich relevant ist die Berechnung **OHNE** Änderungen, d.h. hier die Spalte "Tage lt. Dashboard". 
 
 ```{r, Schwellen, eval=TRUE, echo=FALSE}
-kable(Schwellen, col.names = c("Grenzwert","max. Fallzahl", "Abweichung", "Tage lt. Datenbank", "Tage lt. Dashboard"), align="ccccc", format = "html", table.attr = "style='width:100%;'")
+kable(Schwellen, col.names = c("Inzidenz-Grenzwert"," eingehalten bis (Fälle)",  "eingehalten seit Tag(en)"), align="ccc", format = "html", table.attr = "style='width:100%;'")
 # print(Schwellen, row.names = FALSE)
 ```
 
