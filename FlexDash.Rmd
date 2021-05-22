@@ -339,7 +339,7 @@ timeline.plot <- dash.inz.pivot %>%
                       "LK Freyung-Grafenau",
                       "LK Deggendorf",
                       "LK Rottal-Inn")) %>%
-  filter(Datum >= "2021-01-01") %>%
+  filter(Datum >= "2020-01-01") %>%
   plot_ly(x=~Datum, y=~Inzidenz, type='scatter', color=~Kreis, mode='lines')
 timeline.plot
 

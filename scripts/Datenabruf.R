@@ -20,6 +20,6 @@ timeline_at <- read_delim("https://covid19-dashboard.ages.at/data/CovidFaelle_Ti
 ";", escape_double = FALSE, col_types = cols(Time = col_datetime(format = "%d.%m.%Y %H:%M:%S")),
 trim_ws = TRUE) %>% filter(Bezirk == "Schärding")
 
-View(timeline_at)
+# View(timeline_at)
 
 

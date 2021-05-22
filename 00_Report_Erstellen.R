@@ -10,3 +10,6 @@ rmarkdown::render(
   output_file = paste0("./html/Flexdashboard-", Sys.Date(), ".html"),
   output_dir = paste0("html/", "09262")
 )
+
+
+print(paste0("Aktuell: ",(Sys.time() - parse_date_time(cases[1,8], c('d.m.y, H:M'))) < 1))
