@@ -4,7 +4,7 @@
 #   Gemeindeschlüssel (z.B. 09262 für Kreisfreie Stadt Passau)
 #   Meldedatum von-bis (MD_von, MD_bis)
 
-RKI.cases <- function(AGS, MD_von, MD_bis)
+RKI.cases <- function(AGS, MD_von="2020-01-01", MD_bis=as.Date(Sys.time()))
 {service.url <- paste0("https://services7.arcgis.com/",
                        "mOBPykOjAyBO2ZKk/",
                        "arcgis/rest/services/RKI_COVID19/FeatureServer/0/",
