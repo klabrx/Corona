@@ -12,4 +12,4 @@ rmarkdown::render(
 )
 
 
-print(paste0("Aktuell: ",(Sys.time() - parse_date_time(cases[1,8], c('d.m.y, H:M'))) < 1))
+print(paste0("Sys.time: ",Sys.time()," - Datenstand:", parse_date_time(cases[1,8], c('d.m.y, H:M')))) 

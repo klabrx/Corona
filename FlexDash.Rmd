@@ -292,7 +292,7 @@ weekdays %>%
 url <- "https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Daten/Fallzahlen_Kum_Tab.xlsx?__blob=publicationFile"
 
 
-dash.rki.data <- rio::import(file = url,which = 7)[-(1:4),] %>%
+dash.rki.data <- rio::import(file = url,which = "LK_7-Tage-Inzidenz")[-(1:4),] %>%
   rename(Kreis=2) %>%
   filter(Kreis=="SK Passau") %>%
   t() %>%
@@ -333,7 +333,7 @@ Der hier verwendeten Zahlen geben den Meldestand von `r format(as.Date(dash.rki.
 
 ```{r, Nachbarvergleich, eval=TRUE, echo=FALSE}
 timeline.plot <- dash.inz.pivot %>%
-  # filter(grepl("0926.", AGS)) %>%
+  # filter(grepl("09.6.", AGS)) %>%
   filter(Kreis %in% c("SK Passau",
                       "LK Passau",
                       "LK Freyung-Grafenau",
