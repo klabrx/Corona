@@ -44,21 +44,28 @@ Altersklassen <- data.frame(Altersklasse     = params$Altersklasse,
 limits <- params$limits
 ```
 
-```{r Code, eval=TRUE, echo=FALSE}
 # Funktionen
-eval(parse("./functions/API_Abruf.R", encoding="UTF-8"))
-eval(parse("./functions/ok.R", encoding="UTF-8"))
-eval(parse("./functions/status.R", encoding="UTF-8"))
+funclist <- c("API_Abruf",
+              "ok",
+              "status",
+              "gauges")
+
+for(func in funclist) eval(parse(paste0("./functions/", func, ".R"),
+                                     encoding = "UTF-8"))
 
 # Subscripts
-eval(parse("./scripts/Datenabruf.R", encoding="UTF-8"))
-eval(parse("./scripts/timeline.R", encoding="UTF-8"))
-eval(parse("./scripts/Schwellen.R", encoding="UTF-8"))
-eval(parse("./scripts/weekly.R", encoding="UTF-8"))
-eval(parse("./scripts/delta.R", encoding="UTF-8"))
-eval(parse("./scripts/fig.Inz.gauge.R", encoding="UTF-8"))
-eval(parse("./scripts/weekdays.R", encoding="UTF-8"))
-eval(parse("./scripts/Auswertung_Dashboardzahlen.R", encoding="UTF-8"))
+
+scriptlist <- c("Datenabruf",
+                "timeline",
+                "Schwellen",
+                "delta",
+                "weekly",
+                "fig.Inz.gauge",
+                "weekdays",
+                "Auswertung_Dashboardzahlen")
+
+for(script in scriptlist) eval(parse(paste0("./scripts/", script, ".R"),
+                                     encoding = "UTF-8"))
 ```
 
 
@@ -288,46 +295,13 @@ weekdays %>%
 
 # Inzidenzabhängige Öffnungsregelungen {data-orientation="columns"}
 
-```{r eval=TRUE, echo=FALSE}
-url <- "https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Daten/Fallzahlen_Kum_Tab.xlsx?__blob=publicationFile"
-
-
-dash.rki.data <- rio::import(file = url,which = "LK_7-Tage-Inzidenz")[-(1:4),] %>%
-  rename(Kreis=2) %>%
-  filter(Kreis=="SK Passau") %>%
-  t() %>%
-  as.data.frame 
-# dash.rki.stand <- row.names(dash.rki.data)[1]
-dash.rki.stand <- as.Date(parse_date_time(substring(row.names(dash.rki.data)[1], 8, 17), order="dmy"))
-
-dash.rki.data <- as.data.frame(dash.rki.data[-(1:3),]) %>% rename(Dashboard.Inzidenz=1)
-dash.rki.data$Dashboard.Inzidenz <- round(as.numeric(dash.rki.data$Dashboard.Inzidenz),1)
-dash.rki.data$Datum <- dash.rki.stand - max(row(dash.rki.data)) + row(dash.rki.data)
-
-anhang <- timeline %>% tail(1) %>% select(Dashboard.Inzidenz=Inzidenz, Datum=Meldedatum)
-
-dash.aktuell <- (tail(timeline,1)$Meldedatum == tail(dash.rki.data,1)$Datum)[1,1]
-
-if (tail(timeline,1)$Meldedatum == tail(dash.rki.data,1)$Datum) {
-  anhang$Datum <- anhang$Datum + 1
-  anhang$Dashboard.Inzidenz <- round(anhang$Dashboard.Inzidenz,1)
-  dash.rki.data <- rbind(dash.rki.data, anhang)
-  dash.rki.data$Datum <- as.Date((dash.rki.data$Datum))
-  dash.rki.stand <- dash.rki.stand + 1
-} 
-
-
-```
-
 ## Column {data-width="650"}
 
 ### Unterschreitung von Schwellenwerten {data-height="200"}
 
-Grenzwerte müssen "dauerhaft" unter- bzw. überschritten sein, bevor die damit verbundenen Regelungen greifen. Das gilt im allgemeinen ab dem dritten Tag der Über-/Unterschreitung als der Fall.
+Grenzwerte müssen "dauerhaft" unter- bzw. überschritten sein, bevor die damit verbundenen Regelungen greifen. Das gilt ab dem dritten Tag der Überschreitung (§ 3 Nr. 1 der 12. BayIfSMV) sowie ab dem fünften Tag der Unterschreitung (§ 3 Nr. 2 der 12. BayIfSMV). Bei den 7-Tage-Inzidenzen für frühere Tage muss berücksichtigt werden, dass es sich hier um die jeweils an dem angegebenen Tag berichteten Werte handelt, die **nicht** durch an Folgetagen nachübermittelte Fälle aktualisiert werden (für den Berichtstag "fixierte" Werte). RKI stellt diese fixierten Werte in einer mehrmonatigen Rückschau täglich zur Verfügung.
 
-Bei den 7-Tage-Inzidenzen für frühere Tage muss berücksichtigt werden, dass es sich hier um die jeweils an dem angegebenen Tag berichteten Werte handelt, die **nicht** durch an Folgetagen nachübermittelte Fälle aktualisiert werden (für den Berichtstag "eingefrorene" Werte). RKI stellt diese eingefrorenen Werte einschließlich einer mehrmonatigen Rückschau täglich zur Verfügung.
-
-Der hier verwendeten Zahlen geben den Meldestand von `r format(as.Date(dash.rki.stand), "%A, %d.%m.%Y")` wieder.
+Der hier verwendeten Zahlen geben den Meldestand vom `r format(as.Date(tail(dash.AGS,1)$Datum), "%A, %d.%m.%Y")` wieder.
 
 ### Vergleich mit den Nachbarn
 
@@ -361,51 +335,23 @@ timeline.plot
 ### Grenzwert 35 unterschritten seit
 
 ```{r}
-gauge(as.numeric(dash.rki.stand - max(dash.rki.data[which(dash.rki.data$Dashboard.Inzidenz >= 35),]$Datum)),
-      min = 0,
-      max = 10,
-      symbol = ' T',
-      gaugeSectors(success = c(3, 999),
-                   warning = c(1, 3),
-                   danger = c(0, 0)
-))
+gauge.lim(35)
 ```
 
 ### Grenzwert 50 unterschritten seit
 
 ```{r}
-gauge(as.numeric(dash.rki.stand - max(dash.rki.data[which(dash.rki.data$Dashboard.Inzidenz >= 50),]$Datum)),
-      min = 0,
-      max = 10,
-      symbol = ' T',
-      gaugeSectors(success = c(3, 999),
-                   warning = c(1, 3),
-                   danger = c(0, 0)
-))
+gauge.lim(50)
 ```
 
 ### Grenzwert 100 unterschritten seit
 
 ```{r}
-gauge(as.numeric(dash.rki.stand - max(dash.rki.data[which(dash.rki.data$Dashboard.Inzidenz >= 100),]$Datum)),
-      min = 0,
-      max = 10,
-      symbol = ' T',
-      gaugeSectors(success = c(3, 999),
-                   warning = c(1, 3),
-                   danger = c(0, 0)
-))
+gauge.lim(100)
 ```
 
 ### Grenzwert 150 unterschritten seit
 
 ```{r}
-gauge(as.numeric(dash.rki.stand - max(dash.rki.data[which(dash.rki.data$Dashboard.Inzidenz >= 150),]$Datum)),
-      min = 0,
-      max = 10,
-      symbol = ' T',
-      gaugeSectors(success = c(3, 999),
-                   warning = c(1, 3),
-                   danger = c(0, 0)
-))
+gauge.lim(150)
 ```

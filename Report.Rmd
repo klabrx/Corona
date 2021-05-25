@@ -51,7 +51,8 @@ limits <- params$limits
 # Funktionen
 funclist <- c("API_Abruf",
               "ok",
-              "status")
+              "status",
+              "gauges")
 
 for(func in funclist) eval(parse(paste0("./functions/", func, ".R"),
                                      encoding = "UTF-8"))

@@ -1,6 +1,6 @@
 # Abruf der eigentlichen Daten:
 dash.inz <- read_excel(destfile,  # vorgeladene Exceldatei
-                       sheet="LK_7-Tage-Inzidenz",   
+                       sheet="LK_7-Tage-Inzidenz (fixiert)",   
                        skip=4,    # ohne die ersten 4 Zeilen
                        col_names = FALSE) %>%
   select(-1) %>%                  # ohne die erste Spalte
@@ -44,7 +44,7 @@ dash.inz.plot <- dash.inz.pivot %>% filter(Kreis %in% c("SK Passau",
 
 # Abruf der eigentlichen Daten:
 dash.cases <- read_excel(destfile,  # vorgeladene Exceldatei
-                       sheet="LK_7-Tage-Fallzahlen",
+                       sheet="LK_7-Tage-Fallzahlen (fixiert)",
                        skip=4,    # ohne die ersten 4 Zeilen
                        col_names = FALSE) %>%
   select(-1) %>%                  # ohne die erste Spalte
