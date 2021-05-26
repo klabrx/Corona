@@ -78,6 +78,15 @@ dash.cases.AGS <- dash.cases.pivot %>% filter(AGS == AG)
 dash.inz.AGS <- dash.inz.pivot %>% filter(AGS == AG)
 dash.AGS <- dash.cases.AGS %>% full_join(dash.inz.AGS)
 
+if(tail(dash.AGS$Datum,1) < Sys.Date()) dash.AGS <- dash.AGS %>%
+  add_row(Datum=as.Date(Sys.time()),
+          AGS="09262",
+          Kreis="SK Passau",
+          Fallzahl=as.character(sum(tail(timeline,7)$AnzahlFall)),
+          mysize=1,
+          Inzidenz=tail(timeline,1)$Inzidenz)
+
+
 
 dash.cases.plot <- dash.cases.pivot %>% filter(Kreis %in% c("SK Passau",
                                                         "LK Passau",
