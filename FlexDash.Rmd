@@ -42,7 +42,7 @@ Altersklassen <- data.frame(Altersklasse     = params$Altersklasse,
                             EWO              = params$EWOAK,
                             stringsAsFactors = FALSE)
 limits <- params$limits
-```
+
 
 # Funktionen
 funclist <- c("API_Abruf",
