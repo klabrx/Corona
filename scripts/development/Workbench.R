@@ -73,3 +73,54 @@ ok(80)
 data.dashboard <- as.data.frame(0)
 edit(data.dashboard)
 
+
+# Todesfälle-----------------------------------------------
+deaths <- cases %>% 
+  filter (NeuerTodesfall %in% c(0,1)) %>% 
+  group_by(Altersgruppe, Meldedatum) %>% 
+  summarise(Todesfälle = sum(AnzahlTodesfall))
+deaths
+
+
+cases %>%
+  filter(NeuerTodesfall %in% c(1,0)) %>%
+  group_by(Meldedatum, Altersgruppe)  %>% 
+  summarise_at(c("AnzahlTodesfall"), sum, na.rm = TRUE) %>%
+  ggplot(aes(x=Meldedatum, y=AnzahlTodesfall)) +
+  geom_area(stat="identity") +
+  facet_grid(rows = vars(Altersgruppe))
+
+# Chord-Diagramm ---------------------------------------------------------------
+UMZ2020 <- read_delim("~/Downloads/UMZ2020.csv",
+";", escape_double = FALSE, col_types = cols(Stadtteil = col_skip()),
+trim_ws = TRUE)
+umz <- as.matrix(UMZ2020)
+
+
+
+library(chorddiag)
+library(viridis)
+
+m <- umz
+Stadtteile <- c("Altstadt",
+                "Auerbach",
+                "Grubweg",
+                "Hacklberg",
+                "Haidenhof Nord",
+                "Haidenhof Süd",
+                "Hals",
+                "Heining",
+                "Innstadt",
+                "Kohlbruck",
+                "Neustift",
+                "Patriching",
+                "Rittsteig",
+                "Schalding l.d.D.",
+                "Schalding r.d.D.",
+                "St. Nikola")
+dimnames(m) <- list(have = Stadtteile,
+                    prefer = Stadtteile)
+
+groupColors <- viridis_pal(option = "C")(16)
+chorddiag(m, groupColors = groupColors, groupnamePadding = 25)
+

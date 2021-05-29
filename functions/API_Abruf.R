@@ -17,7 +17,7 @@ parameters <- paste(sep="&",
                           "NeuerFall in (-1,0,1)"
                     ),
                     # "outFields=AnzahlFall,Meldedatum",
-                    "outFields=AnzahlFall,Meldedatum,Altersgruppe,Geschlecht,NeuerFall,AnzahlTodesfall,NeuerTodesfall,Datenstand",
+                    "outFields=AnzahlFall,Meldedatum,Altersgruppe,Geschlecht,NeuerFall,AnzahlTodesfall,NeuerTodesfall,Datenstand,AnzahlGenesen,NeuGenesen",
                     "orderByFieldsForStatistics=Meldedatum",
                     "groupByFieldsForStatistics=Meldedatum",
                     "f=pjson"
