@@ -92,8 +92,9 @@ weekly.plot
 ```{r, Inzidenzplot, eval=TRUE, echo=FALSE}
 InzPlot <- timeline %>% 
   ggplot(aes(x=Meldedatum, y=Inzidenz)) +
-  geom_col() +
-  geom_smooth(method = "gam")
+  geom_col(width = 1) +
+  geom_smooth(method = "gam") + 
+  facet_grid(~year(Meldedatum), scales="free_x")
 InzPlot
 
 ```
@@ -109,8 +110,9 @@ CasePlot <- cases %>%
   # pivot_wider(names_from = Meldedatum, values_from = AnzahlFall) %>%
   as.data.frame() %>%
   ggplot(aes(x = Meldedatum, y = Fälle)) +
-    geom_col() + 
-    geom_smooth(method = "gam")
+    geom_col(width = 1) + 
+    geom_smooth(method = "gam") + 
+  facet_grid(~year(Meldedatum), scales="free_x")
 CasePlot
 ```
 

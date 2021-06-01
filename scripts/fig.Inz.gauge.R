@@ -12,7 +12,7 @@ Inz.gauge.fig <- plot_ly(
                 tickmode = "array",
                 tickvals = list(0,35,50,100,150,200),
                 ticktext = list("0","35","50","100","150","200")),
-    bar = list(color = "#555"),
+    bar = list(color = "#CCC"),
     steps = list(
       list(range = c(0, 35), color = "green"),
       list(range = c(35, 50), color = "greenyellow"),
