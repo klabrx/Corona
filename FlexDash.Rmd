@@ -9,7 +9,7 @@ params:
   NameKreis: "SK Passau"
   EWO: 52803
   backweek: 3
-  limits: !r c(35,50,100,150)
+  limits: !r c(50,100)
   Altersklasse: !r c("A00-A04","A05-A14","A15-A34","A35-A59","A60-A79","A80+")
   EWOAK: !r c(2138,3180,15820,16601,11298,3744)
 ---
@@ -334,12 +334,6 @@ timeline.plot
 
 ## Column {data-width="350"}
 
-### Grenzwert 35 unterschritten seit
-
-```{r}
-gauge.lim(35)
-```
-
 ### Grenzwert 50 unterschritten seit
 
 ```{r}
@@ -352,8 +346,3 @@ gauge.lim(50)
 gauge.lim(100)
 ```
 
-### Grenzwert 150 unterschritten seit
-
-```{r}
-gauge.lim(150)
-```

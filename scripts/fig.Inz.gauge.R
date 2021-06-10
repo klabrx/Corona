@@ -10,15 +10,13 @@ Inz.gauge.fig <- plot_ly(
   gauge  = list(
     axis = list(range = list(NULL, 200),
                 tickmode = "array",
-                tickvals = list(0,35,50,100,150,200),
-                ticktext = list("0","35","50","100","150","200")),
-    bar = list(color = "#CCC"),
+                tickvals = list(0,50,100,200),
+                ticktext = list("0","50","100","200")),
+    bar = list(color = "#333"),
     steps = list(
-      list(range = c(0, 35), color = "green"),
-      list(range = c(35, 50), color = "greenyellow"),
+      list(range = c(0, 50), color = "green"),
       list(range = c(50, 100), color = "yellow"),
-      list(range = c(100, 150), color = "orange"),
-      list(range = c(150, 200), color = "red")),
+      list(range = c(100, 200), color = "red")),
     threshold = list(
       line = list(color = "red",
                   width = 4),
